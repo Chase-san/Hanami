@@ -1,0 +1,17 @@
+#################
+## Eclipse
+#################
+
+.classpath
+.project
+.metadata
+.settings/
+bin/
+tmp/
+src/demo/
+test/
+dispatch/
+hanami.cfg
+build.ant
+*.exe
+*.number
