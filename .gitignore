@@ -12,6 +12,3 @@ src/demo/
 test/
 dispatch/
 hanami.cfg
-build.ant
-*.exe
-*.number

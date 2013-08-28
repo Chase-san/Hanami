@@ -1,0 +1,7 @@
+# Semantic Versioning http://semver.org/
+# MAJOR version when you make incompatible API changes,
+version.major=0
+# MINOR version when you add functionality in a backwards-compatible manner, and
+version.minor=1
+# PATCH version when you make backwards-compatible bug fixes.
+version.patch=4
