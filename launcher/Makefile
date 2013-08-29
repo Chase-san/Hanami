@@ -1,7 +1,9 @@
 CC = gcc
 CFLAGS = -std=gnu99 -Wall -O3 -g0
 LFLAGS = -s -mwindows -static-libgcc $(CFLAGS)
-OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c)) $(patsubst %.rc, %.res, $(wildcard *.rc))
+O_FILES = $(patsubst %.c, %.o, $(wildcard *.c))
+RES_FILES = $(patsubst %.rc, %.res, $(wildcard *.rc))
+OBJECTS = $(O_FILES) $(RES_FILES)
 TARGET = hanami.exe
 
 default: $(TARGET)
@@ -14,7 +16,6 @@ default: $(TARGET)
 
 $(TARGET): $(OBJECTS)
 	$(CC) $(OBJECTS) $(LFLAGS) -Wall -o $@
-	
 
 clean:
 	rm -f *.o

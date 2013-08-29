@@ -73,7 +73,7 @@
 			<include name="*.gif" />
 		</jar>
 		
-		<copy file="launcher.exe" tofile="${releasedir}/hanami.exe" />
+		<copy file="launcher/hanami.exe" todir="${releasedir}" />
 		
 		<delete file="MANIFEST.MF" />
 		

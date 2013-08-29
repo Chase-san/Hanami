@@ -12,3 +12,6 @@ src/demo/
 test/
 dispatch/
 hanami.cfg
+launcher/*.exe
+launcher/*.o
+launcher/*.res
