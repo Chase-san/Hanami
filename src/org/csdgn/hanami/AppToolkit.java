@@ -23,6 +23,7 @@
 package org.csdgn.hanami;
 
 import java.awt.Dimension;
+import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
@@ -178,8 +179,10 @@ public class AppToolkit {
 		
 		 double scaleX = (double) width / imageWidth;
 		 double scaleY = (double) height / imageHeight;
+		 
 		 AffineTransform scaleTransform = AffineTransform.getScaleInstance(scaleX, scaleY);
 		 AffineTransformOp bilinearScaleOp = new AffineTransformOp(scaleTransform, interpolationType);
-		 return bilinearScaleOp.filter(image, new BufferedImage(width, height, image.getType()));
+		 //We cannot set type to just image.getType() as that can cause the program to hang.
+		 return bilinearScaleOp.filter(image, new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB));
 	}
 }
