@@ -99,7 +99,7 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 		@Override
 		public void run() {
 			try {
-				setOverlayText("[Loading]");
+				setOverlayText("[Reading]");
 
 				AnimatedImage image = null;
 				if (file.getName().toLowerCase().endsWith("gif")) {
@@ -108,9 +108,11 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 					image = new AnimatedImage(ImageIO.read(file));
 				}
 
+				setOverlayText("[Scaling]");
 				rawImage = image;
 				image = scaleAnimatedImage(image);
 
+				setOverlayText("[Displaying]");
 				loadImage(image);
 
 				setOverlayTextToFileData(file);
@@ -398,6 +400,7 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 			directory.loadDirectory(file);
 			index = directory.getFileIndex(file);
 			loadModelFile(file);
+			
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
@@ -632,7 +635,7 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 			Insets insets = WindowToolkit.getContentInsets(window, window.getContentPane());
 			maxSize = new Dimension(maxRect.width - insets.left - insets.right, maxRect.height - insets.top - insets.bottom);
 		}
-
+		
 		Dimension scaled = imageSize;
 
 		boolean onlyScaleIfLarger = isFullscreen ? options.fullScaleLarge : options.winScaleLarge;
