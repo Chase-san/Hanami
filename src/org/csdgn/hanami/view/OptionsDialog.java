@@ -59,6 +59,7 @@ public class OptionsDialog extends JPanel implements ActionListener {
 	private JRadioButton rdWDOriginalSize;
 	private JRadioButton rdWDScaleWidth;
 	private JRadioButton rdWDScaleFit;
+	private JRadioButton rdWDScaleWin;
 	private JCheckBox cbWDScaleIfLarger;
 
 	/**
@@ -111,18 +112,24 @@ public class OptionsDialog extends JPanel implements ActionListener {
 			WDScalingGroup.add(rdWDOriginalSize);
 			rdWDOriginalSize.addActionListener(this);
 			panel.add(rdWDOriginalSize);
-			rdWDScaleWidth = new JRadioButton("Scale images to width");
-			rdWDScaleWidth.setActionCommand("wd_scale_width");
-			rdWDScaleWidth.setToolTipText("When set to this images are scaled to the maximum window width.");
-			WDScalingGroup.add(rdWDScaleWidth);
-			rdWDScaleWidth.addActionListener(this);
-			panel.add(rdWDScaleWidth);
-			rdWDScaleFit = new JRadioButton("Scale images to fit");
+			rdWDScaleFit = new JRadioButton("Scale images to desktop");
 			rdWDScaleFit.setActionCommand("wd_scale_fit");
-			rdWDScaleFit.setToolTipText("When set to this images are scaled to fit within the maximum window size.");
+			rdWDScaleFit.setToolTipText("When set to this images are scaled to fit within the maximum content size, based on the desktop size.");
 			WDScalingGroup.add(rdWDScaleFit);
 			rdWDScaleFit.addActionListener(this);
 			panel.add(rdWDScaleFit);
+			rdWDScaleWidth = new JRadioButton("Scale images to desktop width");
+			rdWDScaleWidth.setActionCommand("wd_scale_width");
+			rdWDScaleWidth.setToolTipText("When set to this images are scaled to the maximum content width, based on the desktop width.");
+			WDScalingGroup.add(rdWDScaleWidth);
+			rdWDScaleWidth.addActionListener(this);
+			panel.add(rdWDScaleWidth);
+			rdWDScaleWin = new JRadioButton("Scale images to window");
+			rdWDScaleWin.setActionCommand("wd_scale_window");
+			rdWDScaleWin.setToolTipText("When set to this, images are scaled to fit within the current window.");
+			WDScalingGroup.add(rdWDScaleWin);
+			rdWDScaleWin.addActionListener(this);
+			panel.add(rdWDScaleWin);
 			cbWDScaleIfLarger = new JCheckBox("Only scale large images");
 			cbWDScaleIfLarger.setActionCommand("wd_scale_large");
 			cbWDScaleIfLarger.setToolTipText("When this is checked only images larger then the maximum window size are resized.");
@@ -156,6 +163,9 @@ public class OptionsDialog extends JPanel implements ActionListener {
 		case "wd_scale_fit":
 			tempSettings.winScale = Options.SCALE_FIT;
 			break;
+		case "wd_scale_window":
+			tempSettings.winScale = Options.SCALE_WINDOW;
+			break;
 		case "wd_scale_large":
 			tempSettings.fullScaleLarge = ((JCheckBox) e.getSource()).isSelected();
 			break;
@@ -187,6 +197,9 @@ public class OptionsDialog extends JPanel implements ActionListener {
 			break;
 		case Options.SCALE_FIT:
 			rdWDScaleFit.setSelected(true);
+			break;
+		case Options.SCALE_WINDOW:
+			rdWDScaleWin.setSelected(true);
 			break;
 		}
 		if (settings.fullScaleLarge) {

@@ -37,6 +37,7 @@ public class Options implements Cloneable {
 	public static final int SCALE_NONE = 0;
 	public static final int SCALE_WIDTH = 1;
 	public static final int SCALE_FIT = 2;
+	public static final int SCALE_WINDOW = 3;
 	
 	public int fullScale = SCALE_WIDTH;
 	public int winScale = SCALE_FIT;

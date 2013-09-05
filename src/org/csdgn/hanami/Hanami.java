@@ -625,29 +625,31 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 	BufferedImage scaleImage(BufferedImage image) {
 		Dimension imageSize = new Dimension(image.getWidth(), image.getHeight());
 
+		Dimension scaled = imageSize;
+		boolean onlyScaleIfLarger = isFullscreen ? options.fullScaleLarge : options.winScaleLarge;
+		int scale = isFullscreen ? options.fullScale : options.winScale;
+		
 		Dimension maxSize;
 		if (isFullscreen) {
 			Rectangle maxRect = WindowToolkit.getCurrentScreenBounds(full);
 			maxSize = new Dimension(maxRect.width, maxRect.height);
+		} else if(scale == Options.SCALE_WINDOW) {
+			Rectangle maxRect = scrollPane.getBounds();
+			maxSize = new Dimension(maxRect.width, maxRect.height);
+			scale = Options.SCALE_FIT;
 		} else {
 			Rectangle maxRect = WindowToolkit.getMaximumWindowBounds(window);
 			Insets insets = WindowToolkit.getContentInsets(window, window.getContentPane());
 			maxSize = new Dimension(maxRect.width - insets.left - insets.right, maxRect.height - insets.top - insets.bottom);
 		}
 		
-		Dimension scaled = imageSize;
-
-		boolean onlyScaleIfLarger = isFullscreen ? options.fullScaleLarge : options.winScaleLarge;
-		int scale = isFullscreen ? options.fullScale : options.winScale;
-
-		if (onlyScaleIfLarger) {
-			if (imageSize.width > maxSize.width && (scale == Options.SCALE_FIT || scale == Options.SCALE_WIDTH)) {
-				scaled = AppToolkit.getAdjustedScaledImageSize(imageSize, maxSize, scale);
-			} else if (imageSize.height > maxSize.height && scale == Options.SCALE_FIT) {
-				scaled = AppToolkit.getAdjustedScaledImageSize(imageSize, maxSize, scale);
+		if(onlyScaleIfLarger) {
+			if(imageSize.width > maxSize.width && (scale == Options.SCALE_FIT || scale == Options.SCALE_WIDTH)
+			|| imageSize.height > maxSize.height && scale == Options.SCALE_FIT) {
+				scaled = AppToolkit.getAdjustedScaledImageSize(imageSize,maxSize,scale);
 			}
 		} else {
-			scaled = AppToolkit.getAdjustedScaledImageSize(imageSize, maxSize, scale);
+			scaled = AppToolkit.getAdjustedScaledImageSize(imageSize,maxSize,scale);
 		}
 
 		if (scaled.width != imageSize.width || scaled.height != imageSize.height) {
@@ -736,6 +738,8 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 
 		full.setBounds(0, 0, 0, 0);
 		full.setVisible(false);
+		
+		window.validate();
 
 		loadImage(scaleAnimatedImage(rawImage));
 
@@ -745,7 +749,7 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 	}
 
 	void tryResizeWindow() {
-		if (!isFullscreen) {
+		if (!isFullscreen && options.winScale != Options.SCALE_WINDOW) {
 			resizeWindow();
 		}
 	}
