@@ -23,7 +23,6 @@
 package org.csdgn.hanami;
 
 import java.awt.Dimension;
-import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
@@ -36,8 +35,6 @@ import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
 import javax.swing.UIManager;
-
-import org.csdgn.hanami.options.Options;
 
 public class AppToolkit {
 	

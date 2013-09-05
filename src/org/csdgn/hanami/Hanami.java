@@ -65,7 +65,6 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 
-import org.csdgn.hanami.options.Options;
 import org.csdgn.hanami.view.AboutDialog;
 import org.csdgn.hanami.view.ImageBox;
 import org.csdgn.hanami.view.OptionsDialog;

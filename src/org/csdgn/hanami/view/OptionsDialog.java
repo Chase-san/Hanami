@@ -39,7 +39,7 @@ import javax.swing.JRadioButton;
 import javax.swing.JCheckBox;
 import javax.swing.ButtonGroup;
 
-import org.csdgn.hanami.options.Options;
+import org.csdgn.hanami.Options;
 
 public class OptionsDialog extends JPanel implements ActionListener {
 	public static final int CANCEL_OPTION = 1;
@@ -94,7 +94,6 @@ public class OptionsDialog extends JPanel implements ActionListener {
 			rdFSScaleFit.addActionListener(this);
 			panel.add(rdFSScaleFit);
 			cbFSScaleIfLarger = new JCheckBox("Only scale large images");
-			// cbFSScaleIfLarger.addItemListener(this);
 			cbFSScaleIfLarger.setActionCommand("fs_scale_large");
 			cbFSScaleIfLarger.setToolTipText("When this is checked only images larger then the screen are resized.");
 			cbFSScaleIfLarger.addActionListener(this);
@@ -136,13 +135,6 @@ public class OptionsDialog extends JPanel implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		String cmd = e.getActionCommand();
 		switch (cmd) {
-//		case "save":
-//			approve = true;
-//			setVisible(false);
-//			break;
-//		case "discard":
-//			setVisible(false);
-//			break;
 		case "fs_scale_none":
 			tempSettings.fullScale = Options.SCALE_NONE;
 			break;

@@ -20,7 +20,7 @@
  *    3. This notice may not be removed or altered from any source
  *    distribution.
  */
-package org.csdgn.hanami.options;
+package org.csdgn.hanami;
 
 import java.awt.Color;
 import java.awt.image.AffineTransformOp;
