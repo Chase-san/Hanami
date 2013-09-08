@@ -4,7 +4,7 @@ Java Image Viewer
 
 Very similar to IrfanView, but capable of running on any system with a JRE.
 
-###[Releases](https://github.com/Chase-san/Hanami/releases)
+###[Download Latest](https://github.com/Chase-san/Hanami/releases)
 
 ### Capabilities
 * Can open PNG, GIF, BMP, and JPG files.
