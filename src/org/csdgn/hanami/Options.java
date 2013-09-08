@@ -43,6 +43,8 @@ public class Options implements Cloneable {
 	public int winScale = SCALE_FIT;
 	public boolean fullScaleLarge = true;
 	public boolean winScaleLarge = true;
+	public boolean winResizeRescale = false;
+	public boolean winConstantRescale = false;
 	public int fullTextAlignX = SwingConstants.LEFT;
 	public int fullTextAlignY = SwingConstants.TOP;
 	public int imageAnchor = java.awt.GridBagConstraints.CENTER;
