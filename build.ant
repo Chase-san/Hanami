@@ -6,7 +6,6 @@
 	<property name="addsource" value="true" />
 	<property name="build.version" value="7" />
 	
-	<buildnumber />
 	<property file="version.number"/>
 	<property name="version.file" value="src/org/csdgn/hanami/Version.java" />
 	
@@ -26,6 +25,8 @@
  
 	<!-- Compile the source java to class files -->
 	<target name="compile">
+		<buildnumber />
+		
 		<!-- update our VERSION java file -->
 		<replaceregexp file="${version.file}" match="int MAJOR = [0-9]*;" replace="int MAJOR = ${version.major};" />
 		<replaceregexp file="${version.file}" match="int MINOR = [0-9]*;" replace="int MINOR = ${version.minor};" />
