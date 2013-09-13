@@ -99,6 +99,10 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 		public void run() {
 			try {
 				setOverlayText("[Reading]");
+				
+				if(rawImage != null) {
+					rawImage.flush();
+				}
 
 				AnimatedImage image = null;
 				if (file.getName().toLowerCase().endsWith("gif")) {
@@ -112,7 +116,7 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 				image = scaleAnimatedImage(image);
 
 				setOverlayText("[Displaying]");
-				loadImage(image);
+				loadImage(image,true);
 
 				setOverlayTextToFileData(file);
 			} catch (IOException e) {
@@ -421,7 +425,12 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 		loadFile(new File(filename));
 	}
 
-	void loadImage(AnimatedImage image) {
+	AnimatedImage lastImage;
+	void loadImage(AnimatedImage image, boolean flushOld) {
+		if(flushOld && lastImage != null) {
+			lastImage.flush();
+		}
+		
 		// stop old animation, if any
 		if (animFuture != null) {
 			if(!animFuture.isDone())
@@ -674,7 +683,7 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 		full.requestFocus();
 		full.toFront();
 
-		loadImage(scaleAnimatedImage(rawImage));
+		loadImage(scaleAnimatedImage(rawImage),true);
 	}
 
 	synchronized void setOverlayText(String text) {
@@ -741,7 +750,7 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 		
 		window.validate();
 
-		loadImage(scaleAnimatedImage(rawImage));
+		loadImage(scaleAnimatedImage(rawImage),true);
 
 		window.validate();
 

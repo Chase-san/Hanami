@@ -75,4 +75,10 @@ public class AnimatedImage implements ImageFrames {
 	public int getFrameCount() {
 		return frames.length;
 	}
+	
+	public void flush() {
+		for(BufferedImage image : frames) {
+			image.flush();
+		}
+	}
 }
