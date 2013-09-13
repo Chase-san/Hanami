@@ -14,7 +14,7 @@ int main() {
 	
 	wchar_t wjargs[1024];
 	
-	wcscat(wjargs,L"-jar ");
+	wcscat(wjargs,L"-Xmx1024m -jar ");
 	{
 		wchar_t path[1024];
 		wmemset(path,0,1024);
