@@ -99,8 +99,8 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 		public void run() {
 			try {
 				setOverlayText("[Reading]");
-				
-				if(rawImage != null) {
+
+				if (rawImage != null) {
 					rawImage.flush();
 				}
 
@@ -116,7 +116,7 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 				image = scaleAnimatedImage(image);
 
 				setOverlayText("[Displaying]");
-				loadImage(image,true);
+				loadImage(image, true);
 
 				setOverlayTextToFileData(file);
 			} catch (IOException e) {
@@ -144,8 +144,9 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 				while (true) {
 					Thread.sleep(anim.getDurations()[frameIndex]);
 					++frameIndex;
-					if (frameIndex >= anim.getFrameCount())
+					if (frameIndex >= anim.getFrameCount()) {
 						frameIndex = 0;
+					}
 					view.setImage(anim.getFrames()[frameIndex]);
 				}
 			} catch (InterruptedException e) {
@@ -221,12 +222,18 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 	Options options = new Options();
 	OptionsDialog optdiag;
 	JFileChooser openChooser;
-	
+
 	Future<?> animFuture = null;
 	Future<?> loadFuture = null;
 	ExecutorService loadpool;
 	ExecutorService animpool;
-	
+
+	static final String OptionsFilename = "hanami.cfg";
+
+	File lastFile;
+
+	AnimatedImage lastImage;
+
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		String cmd = e.getActionCommand();
@@ -238,6 +245,9 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 			break;
 		case "menu_exit":
 			System.exit(0);
+			break;
+		case "menu_refresh":
+			reloadDirectory();
 			break;
 		case "menu_options":
 			optdiag.setOptions(options);
@@ -251,18 +261,6 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 			AboutDialog dlg = new AboutDialog();
 			dlg.showAboutDialog(window);
 		}
-	}
-
-	void saveOptions() {
-		File local = AppToolkit.getLocalDirectory();
-		options.storeToFile(new File(local, OptionsFilename));
-	}
-
-	static final String OptionsFilename = "hanami.cfg";
-
-	void loadOptions() {
-		File local = AppToolkit.getLocalDirectory();
-		options.loadFromFile(new File(local, OptionsFilename));
 	}
 
 	public JMenuBar createMenu() {
@@ -281,6 +279,16 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 
 		mnFile.addSeparator();
 
+		JMenuItem mntmDelete = new JMenuItem("Delete");
+		mntmDelete.setActionCommand("menu_delete");
+		mntmDelete.setMnemonic('d');
+		mntmDelete.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
+		mntmDelete.addActionListener(this);
+		mntmDelete.setEnabled(false);
+		mnFile.add(mntmDelete);
+
+		mnFile.addSeparator();
+
 		JMenuItem mntmExit = new JMenuItem("Exit");
 		mntmExit.setActionCommand("menu_exit");
 		mntmExit.setMnemonic('x');
@@ -292,18 +300,27 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 		mnOptions.setMnemonic('v');
 		menuBar.add(mnOptions);
 
+		JMenuItem mntmRefresh = new JMenuItem("Refresh");
+		mntmRefresh.setActionCommand("menu_refresh");
+		mntmRefresh.setMnemonic('r');
+		mntmRefresh.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0));
+		mntmRefresh.addActionListener(this);
+		mnOptions.add(mntmRefresh);
+
+		mnOptions.addSeparator();
+
 		JMenuItem mntmSettings = new JMenuItem("Options");
 		mntmSettings.setActionCommand("menu_options");
 		mntmSettings.setMnemonic('o');
 		mntmSettings.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, 0));
 		mntmSettings.addActionListener(this);
 		mnOptions.add(mntmSettings);
-		
+
 		JMenu mnHelp = new JMenu("Help");
 		mnHelp.setMnemonic('h');
 		mnHelp.addActionListener(this);
 		menuBar.add(mnHelp);
-		
+
 		JMenuItem mntmAbout = new JMenuItem("About...");
 		mntmAbout.setActionCommand("menu_about");
 		mntmAbout.setMnemonic('a');
@@ -357,9 +374,9 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 			break;
 		}
 
-		// we can't browse directories if we are busy 
+		// we can't browse directories if we are busy
 		// or don't have one to browse
-		if (index == -1 || (loadFuture != null && !loadFuture.isDone())) {
+		if (directory.size() == 0 || loadFuture != null && !loadFuture.isDone()) {
 			return;
 		}
 
@@ -403,47 +420,47 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 			directory.loadDirectory(file);
 			index = directory.getFileIndex(file);
 			loadModelFile(file);
-			
+			lastFile = file;
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
 	}
-	
+
+	void loadFile(String filename) {
+		loadFile(new File(filename));
+	}
+
 	/** Loads the given file without putting it in a thread */
 	private void loadFileDirect(File file) {
 		try {
 			directory.loadDirectory(file);
 			index = directory.getFileIndex(file);
 			new ImageLoader(file).run();
+			lastFile = file;
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
 	}
-	
 
-	void loadFile(String filename) {
-		loadFile(new File(filename));
-	}
-
-	AnimatedImage lastImage;
 	void loadImage(AnimatedImage image, boolean flushOld) {
-		if(flushOld && lastImage != null) {
+		if (flushOld && lastImage != null) {
 			lastImage.flush();
 		}
-		
+
 		// stop old animation, if any
 		if (animFuture != null) {
-			if(!animFuture.isDone())
+			if (!animFuture.isDone()) {
 				animFuture.cancel(true);
+			}
 			animFuture = null;
 		}
 
 		// load image into system
 		if (image.getFrameCount() > 1) {
-			//anim = ;
-			//animpool.execute(anim);
+			// anim = ;
+			// animpool.execute(anim);
 			animFuture = animpool.submit(new SimpleAnimator(image));
-			//anim.start();
+			// anim.start();
 		} else {
 			loadSingleImage(image.getFrames()[0]);
 		}
@@ -451,48 +468,18 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 		resetScroll();
 	}
 
-	private void loadSingleImage(BufferedImage image) {
-		view.setImage(image);
-		tryResizeWindow();
-	}
-
 	synchronized void loadModelFile(File file) {
 		loadFuture = loadpool.submit(new ImageLoader(file));
 	}
 
-	void resetScroll() {
-		JViewport vp = scrollPane.getViewport();
-		
-		Point p = vp.getViewPosition();
-		
-		Dimension size = view.getPreferredSize();
-		
-		p.x = 0;
-		p.y = 0;
-		
-		switch(options.startScrollX) {
-		case SwingConstants.CENTER:
-			if(size.width > vp.getWidth()) {
-				p.x = (size.width >> 1) - (vp.getWidth() >> 1);
-			}
-			break;
-		case SwingConstants.RIGHT:
-			p.x = vp.getWidth();
-			break;
-		}
-		
-		switch(options.startScrollY) {
-		case SwingConstants.CENTER:
-			if(size.height > vp.getHeight()) {
-				p.y = (size.height >> 1) - (vp.getHeight() >> 1);
-			}
-			break;
-		case SwingConstants.BOTTOM:
-			p.y = vp.getHeight();
-			break;
-		}
-		
-		vp.setViewPosition(p);
+	void loadOptions() {
+		File local = AppToolkit.getLocalDirectory();
+		options.loadFromFile(new File(local, OptionsFilename));
+	}
+
+	private void loadSingleImage(BufferedImage image) {
+		view.setImage(image);
+		tryResizeWindow();
 	}
 
 	// for fullscreen, since we don't want to display the scrollbars
@@ -506,6 +493,53 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 				a.actionPerformed(new ActionEvent(bar, ActionEvent.ACTION_PERFORMED, null));
 			}
 		}
+	}
+
+	void reloadDirectory() {
+		try {
+			directory.reloadDirectory();
+			index = directory.getFileIndex(lastFile);
+
+			// update title / caption
+			setOverlayTextToFileData(lastFile);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
+
+	void resetScroll() {
+		JViewport vp = scrollPane.getViewport();
+
+		Point p = vp.getViewPosition();
+
+		Dimension size = view.getPreferredSize();
+
+		p.x = 0;
+		p.y = 0;
+
+		switch (options.startScrollX) {
+		case SwingConstants.CENTER:
+			if (size.width > vp.getWidth()) {
+				p.x = (size.width >> 1) - (vp.getWidth() >> 1);
+			}
+			break;
+		case SwingConstants.RIGHT:
+			p.x = vp.getWidth();
+			break;
+		}
+
+		switch (options.startScrollY) {
+		case SwingConstants.CENTER:
+			if (size.height > vp.getHeight()) {
+				p.y = (size.height >> 1) - (vp.getHeight() >> 1);
+			}
+			break;
+		case SwingConstants.BOTTOM:
+			p.y = vp.getHeight();
+			break;
+		}
+
+		vp.setViewPosition(p);
 	}
 
 	void resizeWindow() {
@@ -543,22 +577,10 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 		window.setBounds(bounds);
 	}
 
-	public void setupThreadPooling() {
-		ThreadFactory tfactory = new ThreadFactory() {
-		    public Thread newThread(Runnable r) {
-		        Thread t = new Thread(r);
-		        t.setDaemon(true);
-		        return t;
-		    }
-		};
-		loadpool = Executors.newSingleThreadExecutor(tfactory);
-		animpool = Executors.newSingleThreadExecutor(tfactory);
-	}
-	
 	@Override
 	public void run() {
 		loadOptions();
-		
+
 		window = new JFrame("Hanami");
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		window.setBounds(0, 0, 240, 240);
@@ -566,7 +588,7 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 		window.setIconImages(AppToolkit.getAppIconImages());
 
 		setupThreadPooling();
-		
+
 		optdiag = new OptionsDialog();
 
 		window.setJMenuBar(createMenu());
@@ -599,7 +621,7 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 
 		view = new ImageBox();
 
-		JPanel wrapper = new JPanel(new java.awt.GridBagLayout());		
+		JPanel wrapper = new JPanel(new java.awt.GridBagLayout());
 		wrapper.setBackground(options.background);
 		java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
 		gbc.weightx = gbc.weighty = 1;
@@ -623,6 +645,11 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 		}
 	}
 
+	void saveOptions() {
+		File local = AppToolkit.getLocalDirectory();
+		options.storeToFile(new File(local, OptionsFilename));
+	}
+
 	AnimatedImage scaleAnimatedImage(AnimatedImage image) {
 		BufferedImage[] imgs = new BufferedImage[image.getFrameCount()];
 		for (int i = 0; i < imgs.length; ++i) {
@@ -637,12 +664,12 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 		Dimension scaled = imageSize;
 		boolean onlyScaleIfLarger = isFullscreen ? options.fullScaleLarge : options.winScaleLarge;
 		int scale = isFullscreen ? options.fullScale : options.winScale;
-		
+
 		Dimension maxSize;
 		if (isFullscreen) {
 			Rectangle maxRect = WindowToolkit.getCurrentScreenBounds(full);
 			maxSize = new Dimension(maxRect.width, maxRect.height);
-		} else if(scale == Options.SCALE_WINDOW) {
+		} else if (scale == Options.SCALE_WINDOW) {
 			Rectangle maxRect = scrollPane.getBounds();
 			maxSize = new Dimension(maxRect.width, maxRect.height);
 			scale = Options.SCALE_FIT;
@@ -651,14 +678,14 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 			Insets insets = WindowToolkit.getContentInsets(window, window.getContentPane());
 			maxSize = new Dimension(maxRect.width - insets.left - insets.right, maxRect.height - insets.top - insets.bottom);
 		}
-		
-		if(onlyScaleIfLarger) {
-			if(imageSize.width > maxSize.width && (scale == Options.SCALE_FIT || scale == Options.SCALE_WIDTH)
-			|| imageSize.height > maxSize.height && scale == Options.SCALE_FIT) {
-				scaled = AppToolkit.getAdjustedScaledImageSize(imageSize,maxSize,scale);
+
+		if (onlyScaleIfLarger) {
+			if (imageSize.width > maxSize.width && (scale == Options.SCALE_FIT || scale == Options.SCALE_WIDTH)
+					|| imageSize.height > maxSize.height && scale == Options.SCALE_FIT) {
+				scaled = AppToolkit.getAdjustedScaledImageSize(imageSize, maxSize, scale);
 			}
 		} else {
-			scaled = AppToolkit.getAdjustedScaledImageSize(imageSize,maxSize,scale);
+			scaled = AppToolkit.getAdjustedScaledImageSize(imageSize, maxSize, scale);
 		}
 
 		if (scaled.width != imageSize.width || scaled.height != imageSize.height) {
@@ -683,7 +710,7 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 		full.requestFocus();
 		full.toFront();
 
-		loadImage(scaleAnimatedImage(rawImage),true);
+		loadImage(scaleAnimatedImage(rawImage), true);
 	}
 
 	synchronized void setOverlayText(String text) {
@@ -737,6 +764,19 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 		});
 	}
 
+	public void setupThreadPooling() {
+		ThreadFactory tfactory = new ThreadFactory() {
+			@Override
+			public Thread newThread(Runnable r) {
+				Thread t = new Thread(r);
+				t.setDaemon(true);
+				return t;
+			}
+		};
+		loadpool = Executors.newSingleThreadExecutor(tfactory);
+		animpool = Executors.newSingleThreadExecutor(tfactory);
+	}
+
 	void setWindowed() {
 		isFullscreen = false;
 
@@ -747,10 +787,10 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 
 		full.setBounds(0, 0, 0, 0);
 		full.setVisible(false);
-		
+
 		window.validate();
 
-		loadImage(scaleAnimatedImage(rawImage),true);
+		loadImage(scaleAnimatedImage(rawImage), true);
 
 		window.validate();
 

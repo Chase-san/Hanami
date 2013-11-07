@@ -72,6 +72,8 @@ public class DirectoryModel extends Observable {
 	 * @return the file of that index
 	 */
 	public File getFile(int index) {
+		if(index < 0)
+			return null;
 		checkDirectoryState();
 		return files[index];
 	}
@@ -156,7 +158,8 @@ public class DirectoryModel extends Observable {
 	 * @return number of (possibly filtered) files in the directory
 	 */
 	public int size() {
-		checkDirectoryState();
+		if(files == null)
+			return 0;
 		return files.length;
 	}
 
