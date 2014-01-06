@@ -64,6 +64,7 @@ public class OptionsDialog extends JPanel {
 		setLayout(new BorderLayout(0, 0));
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 		add(contentPanel);
+		
 		contentPanel.setLayout(new BorderLayout(4, 0));
 		
 		listModel = new DefaultListModel<JPanel>();
@@ -108,12 +109,11 @@ public class OptionsDialog extends JPanel {
 		JOptionPane pane = new JOptionPane(this, JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
 		pane.setOptions(new String[] { "Save", "Cancel" });
 		JDialog dialog = pane.createDialog(owner, "Options");
+		
 		dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 		dialog.setResizable(false);
-		dialog.setResizable(true);
 		dialog.setModal(true);
 		dialog.setVisible(true);
-		
 
 		return "Save".equals(pane.getValue()) ? APPROVE_OPTION : CANCEL_OPTION;
 	}

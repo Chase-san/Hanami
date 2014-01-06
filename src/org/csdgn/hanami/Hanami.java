@@ -151,12 +151,11 @@ public class Hanami {
 	public int getSize() {
 		return directory.size();
 	}
-
-	public void loadFile(File file) {
+	
+	public boolean loadFile(File file) {
 		try {
 			directory.loadDirectory(file);
 			index = directory.getFileIndex(file);
-
 			if (rawImage != null) {
 				rawImage.flush();
 			}
@@ -169,10 +168,12 @@ public class Hanami {
 			rawImage = image;
 
 			lastFile = file;
+			
+			return true;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		lastFile = file;
+		return false;
 	}
 
 	private void loadOptions() {

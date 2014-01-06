@@ -238,9 +238,10 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 		callPool.submit(new Runnable() {
 			@Override
 			public void run() {
-				model.loadFile(file);
-				updateImage();
-				setOverlayTextToFileData(file);
+				if(model.loadFile(file)) {
+					updateImage();
+					setOverlayTextToFileData(file);
+				}
 			}
 		});
 	}

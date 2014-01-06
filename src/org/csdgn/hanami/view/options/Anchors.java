@@ -50,7 +50,7 @@ public class Anchors extends JPanel implements OptionPanel, ActionListener {
 	private JToggleButton tglScrollBR;
 
 	public Anchors() {
-		setLayout(new GridLayout(2, 1, 4, 4));
+		setLayout(new GridLayout(1, 2, 4, 4));
 		{
 			JPanel panel = new JPanel();
 			add(panel);

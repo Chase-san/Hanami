@@ -38,7 +38,7 @@ public class Scaling extends JPanel implements OptionPanel, ActionListener {
 	 * Create the panel.
 	 */
 	public Scaling() {
-		setLayout(new GridLayout(2, 1, 4, 4));
+		setLayout(new GridLayout(1, 2, 4, 4));
 		{
 			JPanel panel = new JPanel();
 			add(panel);
