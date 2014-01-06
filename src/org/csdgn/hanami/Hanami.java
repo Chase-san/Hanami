@@ -22,11 +22,13 @@
  */
 package org.csdgn.hanami;
 
+import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Insets;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
@@ -48,6 +50,7 @@ import javax.imageio.ImageIO;
 import javax.swing.Action;
 import javax.swing.ActionMap;
 import javax.swing.InputMap;
+import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
@@ -56,6 +59,7 @@ import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
@@ -243,6 +247,31 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 				loadFile(openChooser.getSelectedFile());
 			}
 			break;
+		case "menu_delete": {
+			if(lastFile == null)
+				break;
+			if(options.askToDelete) {
+				//show dialog
+				Window owner = window;
+				if(isFullscreen)
+					owner = full;
+				JPanel confirm = new JPanel(new BorderLayout(0,4));
+				confirm.add(new JLabel("Are you sure you want to delete this file?"),BorderLayout.CENTER);
+				JCheckBox neverAskAgain = new JCheckBox("Never ask me again.");
+				confirm.add(neverAskAgain,BorderLayout.SOUTH);
+				
+				if(JOptionPane.showConfirmDialog(owner, confirm, "Delete File?", JOptionPane.YES_NO_OPTION)
+					== JOptionPane.YES_OPTION) {
+					if(neverAskAgain.isSelected()) {
+						options.askToDelete = false;
+					}
+					deleteLastFile();
+				}
+			} else {
+				deleteLastFile();
+			}
+			break;
+		}
 		case "menu_exit":
 			System.exit(0);
 			break;
@@ -260,6 +289,16 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 		case "menu_about":
 			AboutDialog dlg = new AboutDialog();
 			dlg.showAboutDialog(window);
+		}
+	}
+	
+	private void deleteLastFile() {
+		lastFile.delete();
+		lastFile = null;
+		try {
+			directory.reloadDirectory();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -284,7 +323,7 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 		mntmDelete.setMnemonic('d');
 		mntmDelete.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
 		mntmDelete.addActionListener(this);
-		mntmDelete.setEnabled(false);
+		//mntmDelete.setEnabled(false);
 		mnFile.add(mntmDelete);
 
 		mnFile.addSeparator();
@@ -470,6 +509,7 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 
 	synchronized void loadModelFile(File file) {
 		loadFuture = loadpool.submit(new ImageLoader(file));
+		lastFile = file;
 	}
 
 	void loadOptions() {
@@ -497,6 +537,9 @@ public class Hanami extends KeyAdapter implements Runnable, ActionListener {
 
 	void reloadDirectory() {
 		try {
+			if(lastFile == null)
+				return;
+			
 			directory.reloadDirectory();
 			index = directory.getFileIndex(lastFile);
 

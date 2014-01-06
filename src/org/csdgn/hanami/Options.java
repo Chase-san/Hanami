@@ -45,6 +45,7 @@ public class Options implements Cloneable {
 	public boolean winScaleLarge = true;
 	public boolean winResizeRescale = false;
 	public boolean winConstantRescale = false;
+	public boolean askToDelete = true;
 	public int fullTextAlignX = SwingConstants.LEFT;
 	public int fullTextAlignY = SwingConstants.TOP;
 	public int imageAnchor = java.awt.GridBagConstraints.CENTER;
@@ -57,6 +58,7 @@ public class Options implements Cloneable {
 	public Options copy() {
 		//as this class gets larger, I don't want to have to expand a copy constructor/method...
 		//so I use ~REFLECTION~ instead (clone() might work, but its very close to heavy wizardry).
+		
 		Options settings = new Options();
 		try {
 			for(Field f : Options.class.getFields()) {
