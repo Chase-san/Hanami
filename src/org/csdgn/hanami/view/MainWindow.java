@@ -37,6 +37,10 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 
 import javax.swing.Action;
 import javax.swing.ActionMap;
@@ -68,35 +72,69 @@ import org.csdgn.maru.image.AnimatedImage;
 
 /**
  * This ought to be fun.
+ * 
  * @author Chase
- *
+ * 
  */
-public class MainWindow implements ActionListener, KeyListener {
-	Hanami model;
-	
-	JDialog full;
-	JFrame window;
-	public ImageBox view;
-	JScrollPane scrollPane;
-	JLabel overlayText;
-	
-	OptionsDialog optdiag;
-	JFileChooser openChooser;
-	
+public class MainWindow extends JFrame implements ActionListener, KeyListener {
+	private static final long serialVersionUID = -5687606517760941288L;
+
+	class SimpleAnimator implements Runnable {
+		AnimatedImage anim;
+		int frameIndex = 0;
+
+		public SimpleAnimator(AnimatedImage anim) {
+			this.anim = anim;
+		}
+
+		@Override
+		public void run() {
+			image.setImage(anim.getFrames()[0]);
+			tryResizeWindow();
+			try {
+				while (true) {
+					Thread.sleep(anim.getDurations()[frameIndex]);
+					++frameIndex;
+					if (frameIndex >= anim.getFrameCount()) {
+						frameIndex = 0;
+					}
+					image.setImage(anim.getFrames()[frameIndex]);
+				}
+			} catch (InterruptedException e) {
+			}
+		}
+	}
+
+	private Hanami model;
+
+	private JDialog full;
+	public ImageBox image;
+	private JScrollPane scrollPane;
+	private JLabel overlayText;
+	private OptionsDialog optdiag;
+	private JFileChooser openChooser;
+	private AnimatedImage lastImage;
 	public boolean isFullscreen = false;
-	
+
+	private Future<?> animationFuture;
+	private ExecutorService callPool;
+	private ExecutorService animationPool;
+
 	public MainWindow(Hanami hanami) {
-		this.model = hanami;
+		super("Hanami");
 		
-		window = new JFrame("Hanami");
-		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		window.setBounds(0, 0, 240, 240);
-		window.setLocationByPlatform(true);
-		window.setIconImages(AppToolkit.getAppIconImages());
-		
+		model = hanami;
+
+		setupThreadPooling();
+
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setBounds(0, 0, 240, 240);
+		setLocationByPlatform(true);
+		setIconImages(AppToolkit.getAppIconImages());
+
 		optdiag = new OptionsDialog();
 
-		window.setJMenuBar(createMenu());
+		setJMenuBar(createMenu());
 
 		full = new JDialog();
 		full.setUndecorated(true);
@@ -109,7 +147,7 @@ public class MainWindow implements ActionListener, KeyListener {
 		overlayText.setVerticalAlignment(model.options.fullTextAlignY);
 		full.setGlassPane(overlayText);
 		overlayText.setVisible(true);
-		
+
 		// readOnly mode to prevent renaming files
 		// when you click on them in the chooser
 		UIManager.put("FileChooser.readOnly", Boolean.TRUE);
@@ -118,14 +156,14 @@ public class MainWindow implements ActionListener, KeyListener {
 		openChooser.setMultiSelectionEnabled(false);
 		openChooser.setFileFilter(model.fileFilter.getFileChooserFilter("Image File"));
 
-		view = new ImageBox();
+		image = new ImageBox();
 
 		JPanel wrapper = new JPanel(new java.awt.GridBagLayout());
 		wrapper.setBackground(model.options.background);
 		java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
 		gbc.weightx = gbc.weighty = 1;
 		gbc.anchor = model.options.imageAnchor;
-		wrapper.add(view, gbc);
+		wrapper.add(image, gbc);
 
 		scrollPane = new JScrollPane();
 		scrollPane.setBorder(null);
@@ -133,196 +171,81 @@ public class MainWindow implements ActionListener, KeyListener {
 
 		setupScrollBars();
 
-		window.addKeyListener(this);
+		addKeyListener(this);
 		full.addKeyListener(this);
 
-		window.add(scrollPane);
-		window.setVisible(true);
+		add(scrollPane);
+		setVisible(true);
 	}
-	
-	// for fullscreen, since we don't want to display the scrollbars
-	void performScrollAction(JScrollBar bar, KeyEvent e) {
-		InputMap imap = bar.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
-		Object obj = imap.get(KeyStroke.getKeyStrokeForEvent(e));
-		if (obj != null) {
-			ActionMap amap = bar.getActionMap();
-			Action a = amap.get(obj);
-			if (a != null) {
-				a.actionPerformed(new ActionEvent(bar, ActionEvent.ACTION_PERFORMED, null));
-			}
-		}
-	}
-	
 
-
-	public void resetScroll() {
-		JViewport vp = scrollPane.getViewport();
-
-		Point p = vp.getViewPosition();
-
-		Dimension size = view.getPreferredSize();
-
-		p.x = 0;
-		p.y = 0;
-
-		switch (model.options.startScrollX) {
-		case SwingConstants.CENTER:
-			if (size.width > vp.getWidth()) {
-				p.x = (size.width >> 1) - (vp.getWidth() >> 1);
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		String cmd = e.getActionCommand();
+		switch (cmd) {
+		case "menu_open":
+			if (openChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+				callLoadFile(openChooser.getSelectedFile());
 			}
 			break;
-		case SwingConstants.RIGHT:
-			p.x = vp.getWidth();
-			break;
-		}
+		case "menu_delete": {
+			if (model.lastFile == null) {
+				break;
+			}
+			if (model.options.askToDelete) {
+				// show dialog
+				Window owner = this;
+				if (isFullscreen) {
+					owner = full;
+				}
+				JPanel confirm = new JPanel(new BorderLayout(0, 4));
+				confirm.add(new JLabel("Are you sure you want to delete this file?"), BorderLayout.CENTER);
+				JCheckBox neverAskAgain = new JCheckBox("Never ask me again.");
+				confirm.add(neverAskAgain, BorderLayout.SOUTH);
 
-		switch (model.options.startScrollY) {
-		case SwingConstants.CENTER:
-			if (size.height > vp.getHeight()) {
-				p.y = (size.height >> 1) - (vp.getHeight() >> 1);
+				if (JOptionPane.showConfirmDialog(owner, confirm, "Delete File?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+					if (neverAskAgain.isSelected()) {
+						model.options.askToDelete = false;
+					}
+					model.deleteLastFile();
+				}
+			} else {
+				model.deleteLastFile();
 			}
 			break;
-		case SwingConstants.BOTTOM:
-			p.y = vp.getHeight();
+		}
+		case "menu_exit":
+			System.exit(0);
 			break;
-		}
-
-		vp.setViewPosition(p);
-	}
-
-	void resizeWindow() {
-		// Arguments: Window window, Dimension (image)size
-		Dimension size = view.getPreferredSize();
-
-		Rectangle max = WindowToolkit.getMaximumWindowBounds(window);
-		Insets margin = WindowToolkit.getContentInsets(window, scrollPane);
-
-		Rectangle bounds = window.getBounds();
-		bounds.width = size.width + margin.left + margin.right;
-		bounds.height = size.height + margin.top + margin.bottom;
-
-		// Height first
-		if (bounds.height > max.height) {
-			bounds.height = max.height;
-			bounds.y = max.y;
-			// add scrollbar adjustment to width
-			Integer UIScrollBarWidth = (Integer) UIManager.get("ScrollBar.width");
-			if (UIScrollBarWidth != null) {
-				bounds.width += UIScrollBarWidth;
+		case "menu_refresh":
+			model.reloadDirectory();
+			setOverlayTextToFileData(model.lastFile);
+			break;
+		case "menu_options":
+			optdiag.setOptions(model.options);
+			if (optdiag.showOptionsDialog(this) == OptionsDialog.APPROVE_OPTION) {
+				model.options = optdiag.getOptions();
+				// Save options to file :)
+				model.saveOptions();
 			}
-		} else if (bounds.y + bounds.height > max.y + max.height) {
-			bounds.y = max.y + max.height - bounds.height;
+			break;
+		case "menu_about":
+			AboutDialog dlg = new AboutDialog();
+			dlg.showAboutDialog(this);
 		}
-
-		if (bounds.width > max.width) {
-			bounds.width = max.width;
-			bounds.x = max.x;
-		} else if (bounds.x + bounds.width > max.x + max.width) {
-			bounds.x = max.x + max.width - bounds.width;
-		}
-
-		// TODO only resize if new dimensions are larger?
-		window.setBounds(bounds);
-	}
-	
-
-
-	public void setFullscreen() {
-		isFullscreen = true;
-
-		Rectangle screen = WindowToolkit.getCurrentScreenBounds(window);
-
-		window.remove(scrollPane);
-		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
-		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-		full.add(scrollPane);
-
-		full.setVisible(true);
-		full.setBounds(screen);
-		full.requestFocus();
-		full.toFront();
-
-		model.loadImage(scaleAnimatedImage(model.rawImage), true);
 	}
 
-	public synchronized void setOverlayText(String text) {
-		overlayText.setText(text);
-		window.setTitle(String.format("Hanami - %s", text));
-	}
-
-	public synchronized void setOverlayTextToFileData(File file) {
-		String path = file.getAbsolutePath();
-		setOverlayText(String.format("[%d/%d] %s", model.index + 1, model.directory.size(), path));
-	}
-
-	void setScrollSize() {
-		Dimension sSize = scrollPane.getSize();
-		if (sSize.width == 1) {
-			return;
-		}
-
-		Dimension iSize = view.getPreferredSize();
-
-		// some nice scrolling dynamics
-		int scroll = Math.min(sSize.height >> 1, (int) (iSize.height / 20.0));
-
-		scrollPane.getVerticalScrollBar().setBlockIncrement(scroll);
-		scrollPane.getVerticalScrollBar().setUnitIncrement(Math.max(scroll >> 2, 1));
-
-		scroll = Math.min(sSize.width >> 1, (int) (iSize.width / 20.0));
-
-		scrollPane.getHorizontalScrollBar().setBlockIncrement(scroll);
-		scrollPane.getHorizontalScrollBar().setUnitIncrement(Math.max(scroll >> 2, 1));
-	}
-
-	void setupScrollBars() {
-		JScrollBar vert = scrollPane.getVerticalScrollBar();
-		vert.setUnitIncrement(10);
-		InputMap map = vert.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
-		map.put(KeyStroke.getKeyStroke("DOWN"), "positiveBlockIncrement");
-		map.put(KeyStroke.getKeyStroke("UP"), "negativeBlockIncrement");
-
-		JScrollBar horz = scrollPane.getHorizontalScrollBar();
-		horz.setUnitIncrement(10);
-		map = horz.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
-		map.put(KeyStroke.getKeyStroke("RIGHT"), "positiveBlockIncrement");
-		map.put(KeyStroke.getKeyStroke("LEFT"), "negativeBlockIncrement");
-
-		scrollPane.addComponentListener(new ComponentAdapter() {
+	public void callLoadFile(final File file) {
+		callPool.submit(new Runnable() {
 			@Override
-			public void componentResized(ComponentEvent e) {
-				setScrollSize();
+			public void run() {
+				model.loadFile(file);
+				updateImage();
+				setOverlayTextToFileData(file);
 			}
 		});
 	}
 
-	public void setWindowed() {
-		isFullscreen = false;
-
-		full.remove(scrollPane);
-		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-		window.add(scrollPane);
-
-		full.setBounds(0, 0, 0, 0);
-		full.setVisible(false);
-
-		window.validate();
-
-		model.loadImage(scaleAnimatedImage(model.rawImage), true);
-
-		window.validate();
-
-		tryResizeWindow();
-	}
-
-	public void tryResizeWindow() {
-		if (!isFullscreen && model.options.winScale != Options.SCALE_WINDOW) {
-			resizeWindow();
-		}
-	}
-	
-	public JMenuBar createMenu() {
+	private JMenuBar createMenu() {
 		JMenuBar menuBar = new JMenuBar();
 
 		JMenu mnFile = new JMenu("File");
@@ -343,7 +266,7 @@ public class MainWindow implements ActionListener, KeyListener {
 		mntmDelete.setMnemonic('d');
 		mntmDelete.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
 		mntmDelete.addActionListener(this);
-		//mntmDelete.setEnabled(false);
+		// mntmDelete.setEnabled(false);
 		mnFile.add(mntmDelete);
 
 		mnFile.addSeparator();
@@ -388,66 +311,6 @@ public class MainWindow implements ActionListener, KeyListener {
 
 		return menuBar;
 	}
-	
-	@Override
-	public void actionPerformed(ActionEvent e) {
-		String cmd = e.getActionCommand();
-		switch (cmd) {
-		case "menu_open":
-			if (openChooser.showOpenDialog(window) == JFileChooser.APPROVE_OPTION) {
-				model.loadFile(openChooser.getSelectedFile());
-			}
-			break;
-		case "menu_delete": {
-			if(model.lastFile == null)
-				break;
-			if(model.options.askToDelete) {
-				//show dialog
-				Window owner = window;
-				if(isFullscreen)
-					owner = full;
-				JPanel confirm = new JPanel(new BorderLayout(0,4));
-				confirm.add(new JLabel("Are you sure you want to delete this file?"),BorderLayout.CENTER);
-				JCheckBox neverAskAgain = new JCheckBox("Never ask me again.");
-				confirm.add(neverAskAgain,BorderLayout.SOUTH);
-				
-				if(JOptionPane.showConfirmDialog(owner, confirm, "Delete File?", JOptionPane.YES_NO_OPTION)
-					== JOptionPane.YES_OPTION) {
-					if(neverAskAgain.isSelected()) {
-						model.options.askToDelete = false;
-					}
-					model.deleteLastFile();
-				}
-			} else {
-				model.deleteLastFile();
-			}
-			break;
-		}
-		case "menu_exit":
-			System.exit(0);
-			break;
-		case "menu_refresh":
-			model.reloadDirectory();
-			break;
-		case "menu_options":
-			optdiag.setOptions(model.options);
-			if (optdiag.showOptionsDialog(window) == OptionsDialog.APPROVE_OPTION) {
-				model.options = optdiag.getOptions();
-				// Save options to file :)
-				model.saveOptions();
-			}
-			break;
-		case "menu_about":
-			AboutDialog dlg = new AboutDialog();
-			dlg.showAboutDialog(window);
-		}
-	}
-
-	@Override
-	public void keyTyped(KeyEvent e) {
-		// TODO Auto-generated method stub
-		
-	}
 
 	@Override
 	public void keyPressed(KeyEvent e) {
@@ -475,7 +338,7 @@ public class MainWindow implements ActionListener, KeyListener {
 		switch (code) {
 		case KeyEvent.VK_LEFT:
 		case KeyEvent.VK_RIGHT:
-			if (scrollPane.getWidth() < view.getWidth()) {
+			if (scrollPane.getWidth() < image.getWidth()) {
 				if (isFullscreen) {
 					performScrollAction(scrollPane.getHorizontalScrollBar(), e);
 				}
@@ -484,7 +347,7 @@ public class MainWindow implements ActionListener, KeyListener {
 			break;
 		case KeyEvent.VK_UP:
 		case KeyEvent.VK_DOWN:
-			if (scrollPane.getHeight() < view.getHeight()) {
+			if (scrollPane.getHeight() < image.getHeight()) {
 				if (isFullscreen) {
 					performScrollAction(scrollPane.getVerticalScrollBar(), e);
 				}
@@ -495,7 +358,7 @@ public class MainWindow implements ActionListener, KeyListener {
 
 		// we can't browse directories if we are busy
 		// or don't have one to browse
-		if (model.directory.size() == 0 || model.loadFuture != null && !model.loadFuture.isDone()) {
+		if (!model.canChangeIndex()) {
 			return;
 		}
 
@@ -506,10 +369,8 @@ public class MainWindow implements ActionListener, KeyListener {
 			}
 		case KeyEvent.VK_PAGE_UP:
 		case KeyEvent.VK_BACK_SPACE:
-			if (--model.index < 0) {
-				model.index = model.directory.size() - 1;
-			}
-			model.loadModelFile(model.directory.getFile(model.index));
+			model.previousIndex();
+			callLoadFile(model.getIndexedFile());
 			break;
 		case KeyEvent.VK_RIGHT:
 			if (!canLeftRight) {
@@ -517,32 +378,130 @@ public class MainWindow implements ActionListener, KeyListener {
 			}
 		case KeyEvent.VK_PAGE_DOWN:
 		case KeyEvent.VK_SPACE:
-			if (++model.index >= model.directory.size()) {
-				model.index = 0;
-			}
-			model.loadModelFile(model.directory.getFile(model.index));
+			model.nextIndex();
+			callLoadFile(model.getIndexedFile());
 			break;
 		case KeyEvent.VK_HOME:
-			model.index = 0;
-			model.loadModelFile(model.directory.getFile(model.index));
+			model.setIndex(0);
+			callLoadFile(model.getIndexedFile());
 			break;
 		case KeyEvent.VK_END:
-			model.index = model.directory.size() - 1;
-			model.loadModelFile(model.directory.getFile(model.index));
+			model.setIndex(model.getSize() - 1);
+			callLoadFile(model.getIndexedFile());
 			break;
 		}
 
 	}
-	
-	public AnimatedImage scaleAnimatedImage(AnimatedImage image) {
+
+	@Override
+	public void keyReleased(KeyEvent e) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void keyTyped(KeyEvent e) {
+		// TODO Auto-generated method stub
+
+	}
+
+	private void loadSingleImage(BufferedImage image) {
+		this.image.setImage(image);
+		tryResizeWindow();
+	}
+
+	// for fullscreen, since we don't want to display the scrollbars
+	private void performScrollAction(JScrollBar bar, KeyEvent e) {
+		InputMap imap = bar.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+		Object obj = imap.get(KeyStroke.getKeyStrokeForEvent(e));
+		if (obj != null) {
+			ActionMap amap = bar.getActionMap();
+			Action a = amap.get(obj);
+			if (a != null) {
+				a.actionPerformed(new ActionEvent(bar, ActionEvent.ACTION_PERFORMED, null));
+			}
+		}
+	}
+
+	private void resetScroll() {
+		JViewport vp = scrollPane.getViewport();
+
+		Point p = vp.getViewPosition();
+
+		Dimension size = image.getPreferredSize();
+
+		p.x = 0;
+		p.y = 0;
+
+		switch (model.options.startScrollX) {
+		case SwingConstants.CENTER:
+			if (size.width > vp.getWidth()) {
+				p.x = (size.width >> 1) - (vp.getWidth() >> 1);
+			}
+			break;
+		case SwingConstants.RIGHT:
+			p.x = vp.getWidth();
+			break;
+		}
+
+		switch (model.options.startScrollY) {
+		case SwingConstants.CENTER:
+			if (size.height > vp.getHeight()) {
+				p.y = (size.height >> 1) - (vp.getHeight() >> 1);
+			}
+			break;
+		case SwingConstants.BOTTOM:
+			p.y = vp.getHeight();
+			break;
+		}
+
+		vp.setViewPosition(p);
+	}
+
+	private void resizeWindow() {
+		// Arguments: Window window, Dimension (image)size
+		Dimension size = image.getPreferredSize();
+
+		Rectangle max = WindowToolkit.getMaximumWindowBounds(this);
+		Insets margin = WindowToolkit.getContentInsets(this, scrollPane);
+
+		Rectangle bounds = getBounds();
+		bounds.width = size.width + margin.left + margin.right;
+		bounds.height = size.height + margin.top + margin.bottom;
+
+		// Height first
+		if (bounds.height > max.height) {
+			bounds.height = max.height;
+			bounds.y = max.y;
+			// add scrollbar adjustment to width
+			Integer UIScrollBarWidth = (Integer) UIManager.get("ScrollBar.width");
+			if (UIScrollBarWidth != null) {
+				bounds.width += UIScrollBarWidth;
+			}
+		} else if (bounds.y + bounds.height > max.y + max.height) {
+			bounds.y = max.y + max.height - bounds.height;
+		}
+
+		if (bounds.width > max.width) {
+			bounds.width = max.width;
+			bounds.x = max.x;
+		} else if (bounds.x + bounds.width > max.x + max.width) {
+			bounds.x = max.x + max.width - bounds.width;
+		}
+
+		// TODO only resize if new dimensions are larger?
+		setBounds(bounds);
+	}
+
+	private AnimatedImage scaleAnimatedImage(AnimatedImage image) {
 		BufferedImage[] imgs = new BufferedImage[image.getFrameCount()];
 		for (int i = 0; i < imgs.length; ++i) {
 			imgs[i] = scaleImage(image.getFrames()[i]);
 		}
 		return new AnimatedImage(imgs, image.getDurations());
 	}
-	
-	BufferedImage scaleImage(BufferedImage image) {
+
+	private BufferedImage scaleImage(BufferedImage image) {
 		Dimension imageSize = new Dimension(image.getWidth(), image.getHeight());
 
 		Dimension scaled = imageSize;
@@ -558,8 +517,8 @@ public class MainWindow implements ActionListener, KeyListener {
 			maxSize = new Dimension(maxRect.width, maxRect.height);
 			scale = Options.SCALE_FIT;
 		} else {
-			Rectangle maxRect = WindowToolkit.getMaximumWindowBounds(window);
-			Insets insets = WindowToolkit.getContentInsets(window, window.getContentPane());
+			Rectangle maxRect = WindowToolkit.getMaximumWindowBounds(this);
+			Insets insets = WindowToolkit.getContentInsets(this, getContentPane());
 			maxSize = new Dimension(maxRect.width - insets.left - insets.right, maxRect.height - insets.top - insets.bottom);
 		}
 
@@ -579,9 +538,140 @@ public class MainWindow implements ActionListener, KeyListener {
 		return image;
 	}
 
-	@Override
-	public void keyReleased(KeyEvent e) {
-		// TODO Auto-generated method stub
-		
+	public void setFullscreen() {
+		isFullscreen = true;
+
+		Rectangle screen = WindowToolkit.getCurrentScreenBounds(this);
+
+		remove(scrollPane);
+		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		full.add(scrollPane);
+
+		full.setVisible(true);
+		full.setBounds(screen);
+		full.requestFocus();
+		full.toFront();
+
+		updateImage();
+		resetScroll();
+	}
+
+	public synchronized void setOverlayText(String text) {
+		overlayText.setText(text);
+		setTitle(String.format("Hanami - %s", text));
+	}
+
+	public synchronized void setOverlayTextToFileData(File file) {
+		String path = file.getAbsolutePath();
+		setOverlayText(String.format("[%d/%d] %s", model.getIndex() + 1, model.getSize(), path));
+	}
+
+	private void setScrollSize() {
+		Dimension sSize = scrollPane.getSize();
+		if (sSize.width == 1) {
+			return;
+		}
+
+		Dimension iSize = image.getPreferredSize();
+
+		// some nice scrolling dynamics
+		int scroll = Math.min(sSize.height >> 1, (int) (iSize.height / 20.0));
+
+		scrollPane.getVerticalScrollBar().setBlockIncrement(scroll);
+		scrollPane.getVerticalScrollBar().setUnitIncrement(Math.max(scroll >> 2, 1));
+
+		scroll = Math.min(sSize.width >> 1, (int) (iSize.width / 20.0));
+
+		scrollPane.getHorizontalScrollBar().setBlockIncrement(scroll);
+		scrollPane.getHorizontalScrollBar().setUnitIncrement(Math.max(scroll >> 2, 1));
+	}
+
+	private void setupScrollBars() {
+		JScrollBar vert = scrollPane.getVerticalScrollBar();
+		vert.setUnitIncrement(10);
+		InputMap map = vert.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+		map.put(KeyStroke.getKeyStroke("DOWN"), "positiveBlockIncrement");
+		map.put(KeyStroke.getKeyStroke("UP"), "negativeBlockIncrement");
+
+		JScrollBar horz = scrollPane.getHorizontalScrollBar();
+		horz.setUnitIncrement(10);
+		map = horz.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+		map.put(KeyStroke.getKeyStroke("RIGHT"), "positiveBlockIncrement");
+		map.put(KeyStroke.getKeyStroke("LEFT"), "negativeBlockIncrement");
+
+		scrollPane.addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentResized(ComponentEvent e) {
+				setScrollSize();
+			}
+		});
+	}
+
+	private void setupThreadPooling() {
+		ThreadFactory tfactory = new ThreadFactory() {
+			@Override
+			public Thread newThread(Runnable r) {
+				Thread t = new Thread(r);
+				t.setDaemon(true);
+				return t;
+			}
+		};
+		callPool = Executors.newSingleThreadExecutor(tfactory);
+		animationPool = Executors.newSingleThreadExecutor(tfactory);
+	}
+
+	public void setWindowed() {
+		isFullscreen = false;
+
+		full.remove(scrollPane);
+		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+		add(scrollPane);
+
+		full.setBounds(0, 0, 0, 0);
+		full.setVisible(false);
+
+		validate();
+
+		updateImage();
+		resetScroll();
+
+		validate();
+
+		tryResizeWindow();
+	}
+
+	private void tryResizeWindow() {
+		if (!isFullscreen && model.options.winScale != Options.SCALE_WINDOW) {
+			resizeWindow();
+		}
+	}
+
+	private void updateImage() {
+		AnimatedImage image = scaleAnimatedImage(model.getImage());
+
+		if (lastImage != null) {
+			lastImage.flush();
+		}
+
+		// stop old animation, if any
+		if (animationFuture != null) {
+			if (!animationFuture.isDone()) {
+				animationFuture.cancel(true);
+			}
+			animationFuture = null;
+		}
+
+		// load image into system
+		if (image.getFrameCount() > 1) {
+			// anim = ;
+			// animpool.execute(anim);
+			animationFuture = animationPool.submit(new SimpleAnimator(image));
+			// anim.start();
+		} else {
+			loadSingleImage(image.getFrames()[0]);
+		}
+
 	}
 }

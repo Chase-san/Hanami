@@ -22,16 +22,10 @@
  */
 package org.csdgn.hanami;
 
-import java.awt.EventQueue;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
 
 import javax.imageio.ImageIO;
 import javax.swing.UIManager;
@@ -49,83 +43,8 @@ import org.csdgn.maru.io.ExtensionFilenameFilter;
  * @author Chase
  * 
  */
-public class Hanami implements Runnable {
-
-	/**
-	 * TODO: find a way to extract this class
-	 */
-	class ImageLoader implements Runnable {
-		File file;
-
-		public ImageLoader(File file) {
-			this.file = file;
-		}
-
-		// isBusy,rawImage,scaleAnimatedImage(),loadImage(),setOverlayText(),
-		// setOverlayTextToFileData() are external
-
-		@Override
-		public void run() {
-			try {
-				view.setOverlayText("[Reading]");
-
-				if (rawImage != null) {
-					rawImage.flush();
-				}
-
-				AnimatedImage image = null;
-				if (file.getName().toLowerCase().endsWith("gif")) {
-					image = new AnimatedImage(new GIFFrameBuilder(new FileInputStream(file), true));
-				} else {
-					image = new AnimatedImage(ImageIO.read(file));
-				}
-
-				view.setOverlayText("[Scaling]");
-				rawImage = image;
-				image = view.scaleAnimatedImage(image);
-
-				view.setOverlayText("[Displaying]");
-				loadImage(image, true);
-
-				view.setOverlayTextToFileData(file);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	/**
-	 * TODO: find a way to extract this class
-	 */
-	class SimpleAnimator implements Runnable {
-		AnimatedImage anim;
-		int frameIndex = 0;
-
-		public SimpleAnimator(AnimatedImage anim) {
-			this.anim = anim;
-		}
-
-		@Override
-		public void run() {
-			view.view.setImage(anim.getFrames()[0]);
-			view.tryResizeWindow();
-			try {
-				while (true) {
-					Thread.sleep(anim.getDurations()[frameIndex]);
-					++frameIndex;
-					if (frameIndex >= anim.getFrameCount()) {
-						frameIndex = 0;
-					}
-					view.view.setImage(anim.getFrames()[frameIndex]);
-				}
-			} catch (InterruptedException e) {
-			}
-		}
-	}
-
-	public AnimatedImage rawImage;
-
-	static File fileToLoad = null;
+public class Hanami {
+	private static final String OptionsFilename = "hanami.cfg";
 
 	public static void main(String[] args) throws IOException {
 		// Set the UI to the native UI, fail silently if we can't
@@ -134,6 +53,8 @@ public class Hanami implements Runnable {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+
+		File fileToLoad = null;
 
 		// handle arguments
 		if (args.length == 1) {
@@ -155,7 +76,13 @@ public class Hanami implements Runnable {
 			}
 		}
 
-		EventQueue.invokeLater(new Hanami());
+		Hanami model = new Hanami();
+		MainWindow view = new MainWindow(model);
+
+		if (fileToLoad != null) {
+			// view.l
+			view.callLoadFile(fileToLoad);
+		}
 
 		startTimerHack();
 	}
@@ -180,22 +107,25 @@ public class Hanami implements Runnable {
 		return timerHack;
 	}
 
-	public DirectoryModel directory;
-	public int index = -1;
-	
+	private AnimatedImage rawImage;
+	private DirectoryModel directory;
+	private int index = -1;
 	public Options options = new Options();
-
-	Future<?> animFuture = null;
-	public Future<?> loadFuture = null;
-	ExecutorService loadpool;
-	ExecutorService animpool;
-
-	static final String OptionsFilename = "hanami.cfg";
-
+	public ExtensionFilenameFilter fileFilter;
 	public File lastFile;
 
-	AnimatedImage lastImage;
-	
+	public Hanami() {
+		loadOptions();
+
+		fileFilter = new ExtensionFilenameFilter("png", "gif", "jpg", "jpeg");
+		directory = new DirectoryModel();
+		directory.setDirectoryFilter(fileFilter);
+	}
+
+	public boolean canChangeIndex() {
+		return directory.size() != 0;
+	}
+
 	public void deleteLastFile() {
 		lastFile.delete();
 		lastFile = null;
@@ -206,107 +136,71 @@ public class Hanami implements Runnable {
 		}
 	}
 
+	public AnimatedImage getImage() {
+		return rawImage;
+	}
+
+	public int getIndex() {
+		return index;
+	}
+
+	public File getIndexedFile() {
+		return directory.getFile(index);
+	}
+
+	public int getSize() {
+		return directory.size();
+	}
+
 	public void loadFile(File file) {
 		try {
 			directory.loadDirectory(file);
 			index = directory.getFileIndex(file);
-			loadModelFile(file);
-			lastFile = file;
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-	}
 
-	void loadFile(String filename) {
-		loadFile(new File(filename));
-	}
-
-	/** Loads the given file without putting it in a thread */
-	private void loadFileDirect(File file) {
-		try {
-			directory.loadDirectory(file);
-			index = directory.getFileIndex(file);
-			new ImageLoader(file).run();
-			lastFile = file;
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-	}
-
-	public void loadImage(AnimatedImage image, boolean flushOld) {
-		if (flushOld && lastImage != null) {
-			lastImage.flush();
-		}
-
-		// stop old animation, if any
-		if (animFuture != null) {
-			if (!animFuture.isDone()) {
-				animFuture.cancel(true);
+			if (rawImage != null) {
+				rawImage.flush();
 			}
-			animFuture = null;
+			AnimatedImage image = null;
+			if (file.getName().toLowerCase().endsWith("gif")) {
+				image = new AnimatedImage(new GIFFrameBuilder(new FileInputStream(file), true));
+			} else {
+				image = new AnimatedImage(ImageIO.read(file));
+			}
+			rawImage = image;
+
+			lastFile = file;
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
-
-		// load image into system
-		if (image.getFrameCount() > 1) {
-			// anim = ;
-			// animpool.execute(anim);
-			animFuture = animpool.submit(new SimpleAnimator(image));
-			// anim.start();
-		} else {
-			loadSingleImage(image.getFrames()[0]);
-		}
-
-		view.resetScroll();
-	}
-
-	public synchronized void loadModelFile(File file) {
-		loadFuture = loadpool.submit(new ImageLoader(file));
 		lastFile = file;
 	}
 
-	void loadOptions() {
+	private void loadOptions() {
 		File local = AppToolkit.getLocalDirectory();
 		options.loadFromFile(new File(local, OptionsFilename));
 	}
 
-	private void loadSingleImage(BufferedImage image) {
-		view.view.setImage(image);
-		view.tryResizeWindow();
+	public void nextIndex() {
+		if (++index >= directory.size()) {
+			index = 0;
+		}
 	}
-	
-	public ExtensionFilenameFilter fileFilter;
+
+	public void previousIndex() {
+		if (--index < 0) {
+			index = directory.size() - 1;
+		}
+	}
 
 	public void reloadDirectory() {
 		try {
-			if(lastFile == null)
+			if (lastFile == null) {
 				return;
-			
+			}
 			directory.reloadDirectory();
 			index = directory.getFileIndex(lastFile);
-
-			// update title / caption
-			view.setOverlayTextToFileData(lastFile);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
-		}
-	}
-	
-	private MainWindow view;
-
-	@Override
-	public void run() {
-		loadOptions();
-
-		setupThreadPooling();
-		
-		fileFilter = new ExtensionFilenameFilter("png", "gif", "jpg", "jpeg");
-		directory = new DirectoryModel();
-		directory.setDirectoryFilter(fileFilter);
-
-		view = new MainWindow(this);
-
-		if (fileToLoad != null) {
-			loadFileDirect(fileToLoad);
 		}
 	}
 
@@ -315,16 +209,7 @@ public class Hanami implements Runnable {
 		options.storeToFile(new File(local, OptionsFilename));
 	}
 
-	public void setupThreadPooling() {
-		ThreadFactory tfactory = new ThreadFactory() {
-			@Override
-			public Thread newThread(Runnable r) {
-				Thread t = new Thread(r);
-				t.setDaemon(true);
-				return t;
-			}
-		};
-		loadpool = Executors.newSingleThreadExecutor(tfactory);
-		animpool = Executors.newSingleThreadExecutor(tfactory);
+	public void setIndex(int index) {
+		this.index = index;
 	}
 }
