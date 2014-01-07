@@ -72,7 +72,7 @@ int main() {
 		wcscat(wjargs,path);
 	}
 	//our jar file
-	wcscat(wjargs,L"\\hanami.jar");
+	wcscat(wjargs,L"\\lib\\hanami.jar");
 	
 	if(argc > 1) {
 #ifdef BASE64

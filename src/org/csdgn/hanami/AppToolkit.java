@@ -24,8 +24,6 @@ package org.csdgn.hanami;
 
 import java.awt.Dimension;
 import java.awt.Image;
-import java.awt.geom.AffineTransform;
-import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,6 +33,10 @@ import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
 import javax.swing.UIManager;
+
+import com.mortennobel.imagescaling.ResampleFilter;
+import com.mortennobel.imagescaling.ResampleFilters;
+import com.mortennobel.imagescaling.ResampleOp;
 
 public class AppToolkit {
 	
@@ -170,16 +172,9 @@ public class AppToolkit {
 		return new Dimension((int)scaledWidth,(int)scaledHeight);
 	}
 	
-	public static BufferedImage getScaledImage(BufferedImage image, int width, int height, int interpolationType) {
-		 int imageWidth = image.getWidth();
-		 int imageHeight = image.getHeight();
-		
-		 double scaleX = (double) width / imageWidth;
-		 double scaleY = (double) height / imageHeight;
-		 
-		 AffineTransform scaleTransform = AffineTransform.getScaleInstance(scaleX, scaleY);
-		 AffineTransformOp bilinearScaleOp = new AffineTransformOp(scaleTransform, interpolationType);
-		 //We cannot set type to just image.getType() as that can cause the program to hang.
-		 return bilinearScaleOp.filter(image, new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB));
+	public static BufferedImage getScaledImage(BufferedImage image, int width, int height, ResampleFilter filter) {
+		ResampleOp op = new ResampleOp(width,height);
+		op.setFilter(filter);
+		return op.filter(image, null);
 	}
 }

@@ -21,7 +21,7 @@
 	<property name="jar.mainclass" value="org.csdgn.hanami.Hanami" />
 	
 	<path id="project.class.path">
-		
+		<pathelement location="lib/java-image-scaling-0.8.6.jar" />
 	</path>
  
 	<!-- Compile the source java to class files -->
@@ -49,8 +49,8 @@
 	</target>
 	
 	<target name="manifest">
-		<manifestclasspath property="jar.classpath" jarfile="placeholder.jar">
-      		<classpath refid="project.class.path" />
+		<manifestclasspath property="jar.classpath" jarfile="lib/placeholder.jar">
+			<classpath refid="project.class.path" />
     	</manifestclasspath>
 		<manifest file="MANIFEST.MF">
 			<attribute name="Class-Path" value="${jar.classpath}" />
@@ -63,7 +63,8 @@
 		<delete dir="${releasedir}" />
 		<mkdir dir="${releasedir}" />
 		
-		<property name="release.file" location="${releasedir}/${app.name}.jar" />
+		<copydir src="lib" dest="${releasedir}/lib" />
+		<property name="release.file" location="${releasedir}/lib/${app.name}.jar" />
 			
 		<jar duplicate="add" basedir="${bindir}" destfile="${release.file}" update="true" compress="true" manifest="MANIFEST.MF">
 			<include name="**/*.class" />
@@ -76,6 +77,10 @@
 		</jar>
 		
 		<copy file="launcher/hanami.exe" todir="${releasedir}" />
+		
+		<!-- copy readme/license -->
+		<copy file="LICENSE" todir="${releasedir}" />
+		<copy file="README.md" todir="${releasedir}" />
 		
 		<delete file="MANIFEST.MF" />
 		

@@ -23,7 +23,6 @@
 package org.csdgn.hanami;
 
 import java.awt.Color;
-import java.awt.image.AffineTransformOp;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -32,6 +31,9 @@ import java.lang.reflect.Modifier;
 import java.util.Properties;
 
 import javax.swing.SwingConstants;
+
+import com.mortennobel.imagescaling.ResampleFilter;
+import com.mortennobel.imagescaling.ResampleFilters;
 
 public class Options implements Cloneable {
 	public static final int SCALE_NONE = 0;
@@ -51,14 +53,13 @@ public class Options implements Cloneable {
 	public int imageAnchor = java.awt.GridBagConstraints.CENTER;
 	public int startScrollX = SwingConstants.LEFT;
 	public int startScrollY = SwingConstants.TOP;
-	public int rescaleFilter = AffineTransformOp.TYPE_BILINEAR;
+	public ResampleFilter resizeFilter = ResampleFilters.getLanczos3Filter();
 	public Color background = Color.BLACK;
 	public Color foreground = Color.MAGENTA;
 	
 	public Options copy() {
 		//as this class gets larger, I don't want to have to expand a copy constructor/method...
 		//so I use ~REFLECTION~ instead (clone() might work, but its very close to heavy wizardry).
-		
 		Options settings = new Options();
 		try {
 			for(Field f : Options.class.getFields()) {
@@ -83,8 +84,6 @@ public class Options implements Cloneable {
 					Object value = loadObject(f.get(this), properties.getProperty(f.getName()));
 					//use default if not in settings file
 					if(value != null) {
-						//FOR DEBUGGING
-						//System.out.println("Setting " + f.getName() + " to " + value);
 						f.set(this, value);
 					}
 				}
@@ -93,6 +92,17 @@ public class Options implements Cloneable {
 			e.printStackTrace();
 		}
 	}
+	
+	private static final ResampleFilter[] filterTable = new ResampleFilter[] {
+		ResampleFilters.getBellFilter(),
+		ResampleFilters.getBiCubicFilter(),
+		ResampleFilters.getBoxFilter(),
+		ResampleFilters.getBSplineFilter(),
+		ResampleFilters.getHermiteFilter(),
+		ResampleFilters.getLanczos3Filter(),
+		ResampleFilters.getMitchellFilter(),
+		ResampleFilters.getTriangleFilter()
+	};
 	
 	private boolean isValidProperty(Field f) {
 		int mods = f.getModifiers();
@@ -128,6 +138,13 @@ public class Options implements Cloneable {
 		if(obj instanceof Integer) {
 			return Integer.parseInt(read);
 		}
+		if(obj instanceof ResampleFilter) {
+			for(int i = 0; i < filterTable.length; ++i) {
+				if(filterTable[i].getName().equals(read)) {
+					return filterTable[i];
+				}
+			}
+		}
 		if(obj instanceof Boolean) {
 			int a = read.indexOf(0);
 			if(a == '0' || a == 'f' || a == 'n')
@@ -140,6 +157,9 @@ public class Options implements Cloneable {
 	private static String storeObject(Object obj) {
 		if(obj == null)
 			return "null";
+		if(obj instanceof ResampleFilter) {
+			return ((ResampleFilter)obj).getName();
+		}
 		if(obj instanceof Color) {
 			Color c = (Color)obj;
 			return String.format("#%02x%02x%02x", c.getRed(),c.getGreen(),c.getBlue());

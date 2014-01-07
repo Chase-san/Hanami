@@ -533,7 +533,7 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 		}
 
 		if (scaled.width != imageSize.width || scaled.height != imageSize.height) {
-			image = AppToolkit.getScaledImage(image, scaled.width, scaled.height, model.options.rescaleFilter);
+			image = AppToolkit.getScaledImage(image, scaled.width, scaled.height, model.options.resizeFilter);
 		}
 
 		return image;
