@@ -124,7 +124,7 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 		super("Hanami");
 		
 		model = hanami;
-
+		
 		setupThreadPooling();
 
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -132,7 +132,7 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 		setLocationByPlatform(true);
 		setIconImages(AppToolkit.getAppIconImages());
 
-		optdiag = new OptionsDialog();
+		optdiag = new OptionsDialog(this);
 
 		setJMenuBar(createMenu());
 
@@ -222,7 +222,7 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 			break;
 		case "menu_options":
 			optdiag.setOptions(model.options);
-			if (optdiag.showOptionsDialog(this) == OptionsDialog.APPROVE_OPTION) {
+			if (optdiag.showDialog() == OptionsDialog.APPROVE_OPTION) {
 				model.options = optdiag.getOptions();
 				// Save options to file :)
 				model.saveOptions();

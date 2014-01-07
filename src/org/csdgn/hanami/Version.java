@@ -28,7 +28,7 @@ package org.csdgn.hanami;
  */
 public class Version {
 	public static final String NAME = "Hanami";
-	public static final int BUILD = 371;
+	public static final int BUILD = 384;
 	public static final int MAJOR = 0;
 	public static final int MINOR = 3;
 	public static final int PATCH = 5;

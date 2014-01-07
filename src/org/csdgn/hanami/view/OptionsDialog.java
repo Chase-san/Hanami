@@ -28,10 +28,9 @@ import java.awt.Window;
 import javax.swing.DefaultListModel;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
+import javax.swing.ListSelectionModel;
 import javax.swing.border.EmptyBorder;
-import javax.swing.JOptionPane;
 
-import org.csdgn.hanami.AppToolkit;
 import org.csdgn.hanami.Options;
 import org.csdgn.hanami.view.options.Anchors;
 import org.csdgn.hanami.view.options.OptionPanel;
@@ -44,8 +43,12 @@ import java.awt.Dimension;
 
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.ListSelectionEvent;
+import javax.swing.JButton;
 
-public class OptionsDialog extends JPanel {
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+
+public class OptionsDialog extends JDialog {
 	public static final int CANCEL_OPTION = 1;
 	public static final int APPROVE_OPTION = 0;
 
@@ -57,20 +60,26 @@ public class OptionsDialog extends JPanel {
 	private JPanel content;
 	private JScrollPane scrollPane;
 	private DefaultListModel<JPanel> listModel;
+	private JPanel panel;
+	private JButton btnSave;
+	private JButton btnCancel;
 
 	/**
 	 * Create the dialog.
 	 */
-	public OptionsDialog() {
-		setLayout(new BorderLayout(0, 0));
+	public OptionsDialog(Window owner) {
+		super(owner, "Options");
+		setModal(true);
+		getContentPane().setLayout(new BorderLayout(0, 0));
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
-		add(contentPanel);
+		getContentPane().add(contentPanel);
 		
 		contentPanel.setLayout(new BorderLayout(4, 0));
 		
 		listModel = new DefaultListModel<JPanel>();
 		
 		final JList<JPanel> list = new JList<JPanel>(listModel);
+		list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		listModel.addElement(new Scaling());
 		listModel.addElement(new Anchors());
 		
@@ -80,7 +89,10 @@ public class OptionsDialog extends JPanel {
 			public void valueChanged(ListSelectionEvent e) {
 				content.removeAll();
 				content.add(listModel.get(list.getSelectedIndex()));
-				content.revalidate();
+				
+				content.validate();
+				content.repaint();
+				
 			}
 		});
 		
@@ -93,7 +105,33 @@ public class OptionsDialog extends JPanel {
 		
 		content.add(listModel.get(0));
 		
+		panel = new JPanel();
+		contentPanel.add(panel, BorderLayout.SOUTH);
+		
+		btnSave = new JButton("Save");
+		btnSave.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				value = APPROVE_OPTION;
+				setVisible(false);
+			}
+		});
+		panel.add(btnSave);
+		
+		btnCancel = new JButton("Cancel");
+		btnCancel.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				value = CANCEL_OPTION;
+				setVisible(false);
+			}
+		});
+		panel.add(btnCancel);
+		
+		pack();
+		
+		
 	}
+	
+	private int value = CANCEL_OPTION;
 
 	public Options getOptions() {
 		return tempOptions;
@@ -104,19 +142,12 @@ public class OptionsDialog extends JPanel {
 		for(int i = 0; i < listModel.size(); ++i) {
 			((OptionPanel)listModel.get(i)).setOptions(tempOptions);
 		}
-		
 	}
-
-	public int showOptionsDialog(Window owner) {
-		JOptionPane pane = new JOptionPane(this, JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
-		pane.setOptions(new String[] { "Save", "Cancel" });
-		JDialog dialog = pane.createDialog(owner, "Options");
-		
-		dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-		dialog.setResizable(false);
-		dialog.setModal(true);
-		dialog.setVisible(true);
-
-		return "Save".equals(pane.getValue()) ? APPROVE_OPTION : CANCEL_OPTION;
+	
+	public int showDialog() {
+		setLocationRelativeTo(getOwner());
+		setVisible(true);
+		dispose();
+		return value;
 	}
 }

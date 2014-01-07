@@ -51,6 +51,9 @@ public class Hanami {
 	public static void main(String[] args) throws IOException {
 		// Set the UI to the native UI, fail silently if we can't
 		try {
+			//prevents windows from drawing really slowly during resize (windows 7 problem)
+			System.setProperty("sun.java2d.noddraw", Boolean.TRUE.toString());
+			//provides the native Look and Feel
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} catch (Exception e) {
 			e.printStackTrace();
