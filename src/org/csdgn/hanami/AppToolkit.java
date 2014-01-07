@@ -35,14 +35,13 @@ import javax.imageio.ImageIO;
 import javax.swing.UIManager;
 
 import com.mortennobel.imagescaling.ResampleFilter;
-import com.mortennobel.imagescaling.ResampleFilters;
 import com.mortennobel.imagescaling.ResampleOp;
 
 public class AppToolkit {
-	
+
 	private static File directory = null;
 	private static ArrayList<Image> icons = null;
-	
+
 	/**
 	 * Gets the directory for the program.
 	 */
@@ -50,9 +49,9 @@ public class AppToolkit {
 		if (directory != null) {
 			return directory;
 		}
-		//Determine our base directory
-		String codePath = AppToolkit.class.getProtectionDomain().getCodeSource()
-				.getLocation().getPath();
+
+		// Determine our base directory
+		String codePath = AppToolkit.class.getProtectionDomain().getCodeSource().getLocation().getPath();
 		File codeFile = new File(codePath);
 		if (codeFile.exists() && codePath != null) {
 			// So we have a predictable format
@@ -62,7 +61,11 @@ public class AppToolkit {
 				String last = codePath.substring(len - 3).toLowerCase();
 				if (last.equals("jar") || last.equals("bin")) {
 					// Executing from a jar or development path
-					return directory = codeFile.getParentFile();
+					directory = codeFile.getParentFile();
+					if ("lib".equalsIgnoreCase(directory.getName())) {
+						directory = directory.getParentFile();
+					}
+					return directory;
 				}
 			}
 			if (directory == null) {
@@ -71,13 +74,18 @@ public class AppToolkit {
 			while (!directory.isDirectory()) {
 				directory = directory.getParentFile();
 			}
+			if ("lib".equalsIgnoreCase(directory.getName())) {
+				directory = directory.getParentFile();
+			}
+			// System.out.println(directory);
+
 			return directory;
 		}
 
 		// I guess we can't do anything else...
 		return directory = new File(".");
 	}
-	
+
 	/**
 	 * Get the program Icons
 	 * 
@@ -93,16 +101,17 @@ public class AppToolkit {
 			String iconString = String.format("icon%d.png", val);
 
 			InputStream stream = getLocalResource(iconString);
-			if(stream != null) try {
-				icons.add(ImageIO.read(stream));
-			} catch (IOException e) {
-				//If we fail, just show the default java icon
-			}
+			if (stream != null)
+				try {
+					icons.add(ImageIO.read(stream));
+				} catch (IOException e) {
+					// If we fail, just show the default java icon
+				}
 		}
 
 		return icons;
 	}
-	
+
 	public static InputStream getLocalResource(String resource) {
 		// check within current directory first
 		try {
@@ -111,14 +120,14 @@ public class AppToolkit {
 				return new FileInputStream(file);
 			}
 		} catch (Exception e) {
-			//TODO
+			// TODO
 		}
-		
+
 		// fall back to in jar
 		InputStream stream = ClassLoader.getSystemResourceAsStream(resource);
-		if(stream != null)
+		if (stream != null)
 			return stream;
-		
+
 		// if that fails, try development location
 		try {
 			File file = new File(getLocalDirectory(), "resource/" + resource);
@@ -126,54 +135,53 @@ public class AppToolkit {
 				return new FileInputStream(file);
 			}
 		} catch (Exception e) {
-			//TODO
+			// TODO
 		}
-		
+
 		return null;
 	}
-	
-	
-	public static Dimension getAdjustedScaledImageSize(Dimension imageSize, Dimension maxSize, int scale) {
-		Dimension scaled = getScaledImageSize(imageSize,maxSize,scale);
-		if(scaled.height > maxSize.height) {
+
+	public static Dimension getAdjustedScaledImageSize(Dimension imageSize, Dimension maxSize, Options.Scale scale) {
+		Dimension scaled = getScaledImageSize(imageSize, maxSize, scale);
+		if (scaled.height > maxSize.height) {
 			Integer UIScrollBarWidth = (Integer) UIManager.get("ScrollBar.width");
-			if(UIScrollBarWidth != null) {
+			if (UIScrollBarWidth != null) {
 				maxSize.width -= UIScrollBarWidth;
-				scaled = getScaledImageSize(imageSize,maxSize,scale);
+				scaled = getScaledImageSize(imageSize, maxSize, scale);
 			}
 		}
 		return scaled;
 	}
-	
-	private static Dimension getScaledImageSize(Dimension imageSize, Dimension maxContentSize, int scale) {
-		if(scale == Options.SCALE_NONE) {
-			return new Dimension(imageSize.width,imageSize.height);
+
+	private static Dimension getScaledImageSize(Dimension imageSize, Dimension maxContentSize, Options.Scale scale) {
+		if (scale == Options.Scale.None) {
+			return new Dimension(imageSize.width, imageSize.height);
 		}
-		
-		double ratio = imageSize.width/(double)imageSize.height;
-		
+
+		double ratio = imageSize.width / (double) imageSize.height;
+
 		double scaledWidth = maxContentSize.height * ratio;
 		double scaledHeight = maxContentSize.width / ratio;
-		
-		switch(scale) {
-		case Options.SCALE_FIT:
-			if(scaledHeight <= maxContentSize.height) {
+
+		switch (scale) {
+		case Fit:
+			if (scaledHeight <= maxContentSize.height) {
 				scaledWidth = maxContentSize.width;
 			} else {
 				scaledHeight = maxContentSize.height;
 			}
 			break;
-		case Options.SCALE_WIDTH:
+		case Width:
 			scaledWidth = maxContentSize.width;
 			break;
 		default:
 		}
-		
-		return new Dimension((int)scaledWidth,(int)scaledHeight);
+
+		return new Dimension((int) scaledWidth, (int) scaledHeight);
 	}
-	
+
 	public static BufferedImage getScaledImage(BufferedImage image, int width, int height, ResampleFilter filter) {
-		ResampleOp op = new ResampleOp(width,height);
+		ResampleOp op = new ResampleOp(width, height);
 		op.setFilter(filter);
 		return op.filter(image, null);
 	}

@@ -31,6 +31,7 @@ import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.JOptionPane;
 
+import org.csdgn.hanami.AppToolkit;
 import org.csdgn.hanami.Options;
 import org.csdgn.hanami.view.options.Anchors;
 import org.csdgn.hanami.view.options.OptionPanel;
@@ -99,10 +100,11 @@ public class OptionsDialog extends JPanel {
 	}
 
 	public void setOptions(Options options) {
-		for(int i = 0; i < listModel.size(); ++i) {
-			((OptionPanel)listModel.get(i)).setOptions(options);
-		}
 		tempOptions = options.copy();
+		for(int i = 0; i < listModel.size(); ++i) {
+			((OptionPanel)listModel.get(i)).setOptions(tempOptions);
+		}
+		
 	}
 
 	public int showOptionsDialog(Window owner) {

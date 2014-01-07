@@ -143,8 +143,8 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 		// setup full screen glass pane
 		overlayText = new JLabel();
 		overlayText.setForeground(model.options.foreground);
-		overlayText.setHorizontalAlignment(model.options.fullTextAlignX);
-		overlayText.setVerticalAlignment(model.options.fullTextAlignY);
+		overlayText.setHorizontalAlignment(model.options.getFullScreenCaptionHorizontal());
+		overlayText.setVerticalAlignment(model.options.getFullScreenCaptionVertical());
 		full.setGlassPane(overlayText);
 		overlayText.setVisible(true);
 
@@ -162,7 +162,7 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 		wrapper.setBackground(model.options.background);
 		java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
 		gbc.weightx = gbc.weighty = 1;
-		gbc.anchor = model.options.imageAnchor;
+		gbc.anchor = model.options.getImageAnchorPosition();
 		wrapper.add(image, gbc);
 
 		scrollPane = new JScrollPane();
@@ -434,7 +434,7 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 		p.x = 0;
 		p.y = 0;
 
-		switch (model.options.startScrollX) {
+		switch (model.options.getScrollStartHorizontal()) {
 		case SwingConstants.CENTER:
 			if (size.width > vp.getWidth()) {
 				p.x = (size.width >> 1) - (vp.getWidth() >> 1);
@@ -445,7 +445,7 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 			break;
 		}
 
-		switch (model.options.startScrollY) {
+		switch (model.options.getScrollStartVertical()) {
 		case SwingConstants.CENTER:
 			if (size.height > vp.getHeight()) {
 				p.y = (size.height >> 1) - (vp.getHeight() >> 1);
@@ -507,16 +507,16 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 
 		Dimension scaled = imageSize;
 		boolean onlyScaleIfLarger = isFullscreen ? model.options.fullScaleLarge : model.options.winScaleLarge;
-		int scale = isFullscreen ? model.options.fullScale : model.options.winScale;
+		Options.Scale scale = isFullscreen ? model.options.fullScale : model.options.winScale;
 
 		Dimension maxSize;
 		if (isFullscreen) {
 			Rectangle maxRect = WindowToolkit.getCurrentScreenBounds(full);
 			maxSize = new Dimension(maxRect.width, maxRect.height);
-		} else if (scale == Options.SCALE_WINDOW) {
+		} else if (scale == Options.Scale.Window) {
 			Rectangle maxRect = scrollPane.getBounds();
 			maxSize = new Dimension(maxRect.width, maxRect.height);
-			scale = Options.SCALE_FIT;
+			scale = Options.Scale.Fit;
 		} else {
 			Rectangle maxRect = WindowToolkit.getMaximumWindowBounds(this);
 			Insets insets = WindowToolkit.getContentInsets(this, getContentPane());
@@ -524,8 +524,8 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 		}
 
 		if (onlyScaleIfLarger) {
-			if (imageSize.width > maxSize.width && (scale == Options.SCALE_FIT || scale == Options.SCALE_WIDTH)
-					|| imageSize.height > maxSize.height && scale == Options.SCALE_FIT) {
+			if (imageSize.width > maxSize.width && (scale == Options.Scale.Fit || scale == Options.Scale.Width)
+					|| imageSize.height > maxSize.height && scale == Options.Scale.Fit) {
 				scaled = AppToolkit.getAdjustedScaledImageSize(imageSize, maxSize, scale);
 			}
 		} else {
@@ -644,7 +644,7 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 	}
 
 	private void tryResizeWindow() {
-		if (!isFullscreen && model.options.winScale != Options.SCALE_WINDOW) {
+		if (!isFullscreen && model.options.winScale != Options.Scale.Window) {
 			resizeWindow();
 		}
 	}

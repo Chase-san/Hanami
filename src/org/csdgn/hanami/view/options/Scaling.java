@@ -112,27 +112,29 @@ public class Scaling extends JPanel implements OptionPanel, ActionListener {
 	@Override
 	public void setOptions(Options options) {
 		switch (options.fullScale) {
-		case Options.SCALE_NONE:
+		case None:
 			rdFSOriginalSize.setSelected(true);
 			break;
-		case Options.SCALE_WIDTH:
+		case Width:
 			rdFSScaleWidth.setSelected(true);
 			break;
-		case Options.SCALE_FIT:
+		case Fit:
 			rdFSScaleFit.setSelected(true);
+			break;
+		default:
 			break;
 		}
 		switch (options.winScale) {
-		case Options.SCALE_NONE:
+		case None:
 			rdWDOriginalSize.setSelected(true);
 			break;
-		case Options.SCALE_WIDTH:
+		case Width:
 			rdWDScaleWidth.setSelected(true);
 			break;
-		case Options.SCALE_FIT:
+		case Fit:
 			rdWDScaleFit.setSelected(true);
 			break;
-		case Options.SCALE_WINDOW:
+		case Window:
 			rdWDScaleWin.setSelected(true);
 			break;
 		}
@@ -150,28 +152,28 @@ public class Scaling extends JPanel implements OptionPanel, ActionListener {
 		String cmd = e.getActionCommand();
 		switch (cmd) {
 		case "fs_scale_none":
-			tempOptions.fullScale = Options.SCALE_NONE;
+			tempOptions.fullScale = Options.Scale.None;
 			return;
 		case "fs_scale_width":
-			tempOptions.fullScale = Options.SCALE_WIDTH;
+			tempOptions.fullScale = Options.Scale.Width;
 			return;
 		case "fs_scale_fit":
-			tempOptions.fullScale = Options.SCALE_FIT;
+			tempOptions.fullScale = Options.Scale.Fit;
 			return;
 		case "fs_scale_large":
 			tempOptions.fullScaleLarge = ((JCheckBox) e.getSource()).isSelected();
 			return;
 		case "wd_scale_none":
-			tempOptions.winScale = Options.SCALE_NONE;
+			tempOptions.winScale = Options.Scale.None;
 			return;
 		case "wd_scale_width":
-			tempOptions.winScale = Options.SCALE_WIDTH;
+			tempOptions.winScale = Options.Scale.Width;
 			return;
 		case "wd_scale_fit":
-			tempOptions.winScale = Options.SCALE_FIT;
+			tempOptions.winScale = Options.Scale.Fit;
 			return;
 		case "wd_scale_window":
-			tempOptions.winScale = Options.SCALE_WINDOW;
+			tempOptions.winScale = Options.Scale.Window;
 			return;
 		case "wd_scale_large":
 			tempOptions.fullScaleLarge = ((JCheckBox) e.getSource()).isSelected();

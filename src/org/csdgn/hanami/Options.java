@@ -23,6 +23,7 @@
 package org.csdgn.hanami;
 
 import java.awt.Color;
+import java.awt.GridBagConstraints;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -36,26 +37,106 @@ import com.mortennobel.imagescaling.ResampleFilter;
 import com.mortennobel.imagescaling.ResampleFilters;
 
 public class Options implements Cloneable {
-	public static final int SCALE_NONE = 0;
-	public static final int SCALE_WIDTH = 1;
-	public static final int SCALE_FIT = 2;
-	public static final int SCALE_WINDOW = 3;
+	public static enum Scale {
+		None,Width,Fit,Window
+	}
 	
-	public int fullScale = SCALE_WIDTH;
-	public int winScale = SCALE_FIT;
+	public static enum Position {
+		TopLeft("tl"),TopCenter("tc"),TopRight("tr"),
+		Left("ml"),Center("mc"),Right("mr"),
+		BottomLeft("bl"),BottomCenter("bc"),BottomRight("br");
+		
+		public final String position;
+		private Position(String data) {
+			position = data;
+		}
+		public static Position getPosition(String data) {
+			for(Position p : Position.values())
+				if(p.position.equals(data))
+					return p;
+			return null;
+		}
+	}
+	
+	public Scale fullScale = Scale.Width;
+	public Scale winScale = Scale.Fit;
 	public boolean fullScaleLarge = true;
 	public boolean winScaleLarge = true;
-	public boolean winResizeRescale = false;
-	public boolean winConstantRescale = false;
 	public boolean askToDelete = true;
-	public int fullTextAlignX = SwingConstants.LEFT;
-	public int fullTextAlignY = SwingConstants.TOP;
-	public int imageAnchor = java.awt.GridBagConstraints.CENTER;
-	public int startScrollX = SwingConstants.LEFT;
-	public int startScrollY = SwingConstants.TOP;
+	public Position fullScreenCaptionPosition = Position.TopLeft;
+	public Position scrollStartPosition = Position.TopLeft;
+	public Position imageAnchorPosition = Position.Center;
 	public ResampleFilter resizeFilter = ResampleFilters.getLanczos3Filter();
 	public Color background = Color.BLACK;
 	public Color foreground = Color.MAGENTA;
+	
+	public int getScrollStartHorizontal() {
+		switch(fullScreenCaptionPosition) {
+		case TopLeft: case Left: case BottomLeft:
+			return SwingConstants.LEFT;
+		case TopCenter: case Center: case BottomCenter:
+			return SwingConstants.CENTER;
+		case TopRight: case Right: case BottomRight:
+			return SwingConstants.RIGHT;
+		}
+		return 0;
+	}
+	public int getScrollStartVertical() {
+		switch(fullScreenCaptionPosition) {
+		case TopLeft: case TopCenter: case TopRight:
+			return SwingConstants.TOP;
+		case Left:  case Center: case Right:
+			return SwingConstants.CENTER;
+		case BottomLeft: case BottomCenter: case BottomRight:
+			return SwingConstants.BOTTOM;
+		}
+		return 0;
+	}
+	public int getFullScreenCaptionHorizontal() {
+		switch(fullScreenCaptionPosition) {
+		case TopLeft: case Left: case BottomLeft:
+			return SwingConstants.LEFT;
+		case TopCenter: case Center: case BottomCenter:
+			return SwingConstants.CENTER;
+		case TopRight: case Right: case BottomRight:
+			return SwingConstants.RIGHT;
+		}
+		return 0;
+	}
+	public int getFullScreenCaptionVertical() {
+		switch(fullScreenCaptionPosition) {
+		case TopLeft: case TopCenter: case TopRight:
+			return SwingConstants.TOP;
+		case Left:  case Center: case Right:
+			return SwingConstants.CENTER;
+		case BottomLeft: case BottomCenter: case BottomRight:
+			return SwingConstants.BOTTOM;
+		}
+		return 0;
+	}
+	public int getImageAnchorPosition() {
+		switch(fullScreenCaptionPosition) {
+		case TopLeft:
+			return GridBagConstraints.NORTHWEST;
+		case TopCenter:
+			return GridBagConstraints.NORTH;
+		case TopRight:
+			return GridBagConstraints.NORTHEAST;
+		case Left:
+			return GridBagConstraints.WEST;
+		case Center:
+			return GridBagConstraints.CENTER;
+		case Right:
+			return GridBagConstraints.EAST;
+		case BottomLeft:
+			return GridBagConstraints.SOUTHWEST;
+		case BottomCenter:
+			return GridBagConstraints.SOUTH;
+		case BottomRight:
+			return GridBagConstraints.SOUTHEAST;
+		}
+		return 0;
+	}
 	
 	public Options copy() {
 		//as this class gets larger, I don't want to have to expand a copy constructor/method...
@@ -132,8 +213,14 @@ public class Options implements Cloneable {
 	private static Object loadObject(Object obj, String read) {
 		if(obj == null || read == null)
 			return null;
+		if(obj.getClass().isEnum()) {
+			//hrmm, something like this I think
+			for(Object tObj : obj.getClass().getEnumConstants())
+				if(tObj.toString().equals(read))
+					return tObj;
+		}
 		if(obj instanceof Color) {
-			return Color.decode(read);
+			return Color.decode("#"+read);
 		}
 		if(obj instanceof Integer) {
 			return Integer.parseInt(read);
@@ -162,7 +249,7 @@ public class Options implements Cloneable {
 		}
 		if(obj instanceof Color) {
 			Color c = (Color)obj;
-			return String.format("#%02x%02x%02x", c.getRed(),c.getGreen(),c.getBlue());
+			return String.format("%02x%02x%02x", c.getRed(),c.getGreen(),c.getBlue());
 		}
 		return obj.toString();
 	}

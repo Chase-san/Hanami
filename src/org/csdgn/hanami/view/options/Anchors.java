@@ -1,30 +1,29 @@
 package org.csdgn.hanami.view.options;
 
-import java.awt.GridBagConstraints;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.HashMap;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JPanel;
 import javax.swing.JToggleButton;
-import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.TitledBorder;
 
 import org.csdgn.hanami.Options;
-import org.csdgn.maru.util.HashBiMap;
 
 public class Anchors extends JPanel implements OptionPanel, ActionListener {
 	private static final long serialVersionUID = 1L;
 
 	private Options tempOptions;
 
-	private static HashBiMap<String, Integer> ANCHOR_DATA = new HashBiMap<String, Integer>(new String[] { "anchor_tl", "anchor_tc",
-			"anchor_tr", "anchor_ml", "anchor_mc", "anchor_mr", "anchor_bl", "anchor_bc", "anchor_br" }, new Integer[] {
-			GridBagConstraints.NORTHWEST, GridBagConstraints.NORTH, GridBagConstraints.NORTHEAST, GridBagConstraints.WEST,
-			GridBagConstraints.CENTER, GridBagConstraints.EAST, GridBagConstraints.SOUTHWEST, GridBagConstraints.SOUTH,
-			GridBagConstraints.SOUTHEAST });
+	
+	private static HashMap<String,Options.Position> POSITION_DATA = new HashMap<String,Options.Position>();
+	static {
+		//new String[] { "tl", "tc", "tr", "ml", "mc", "mr", "bl", "bc", "br" };
+		//new Options.Position[] {};
+	}
 
 	private final ButtonGroup AnchorGroup = new ButtonGroup();
 	private final ButtonGroup ScrollGroup = new ButtonGroup();
@@ -197,79 +196,65 @@ public class Anchors extends JPanel implements OptionPanel, ActionListener {
 
 	@Override
 	public void setOptions(Options options) {
-		switch (options.imageAnchor) {
-		case GridBagConstraints.NORTHWEST:
+		switch (options.imageAnchorPosition) {
+		case TopLeft:
 			tglAnchorTL.setSelected(true);
 			break;
-		case GridBagConstraints.NORTH:
+		case TopCenter:
 			tglAnchorTC.setSelected(true);
 			break;
-		case GridBagConstraints.NORTHEAST:
+		case TopRight:
 			tglAnchorTR.setSelected(true);
 			break;
-		case GridBagConstraints.WEST:
+		case Left:
 			tglAnchorML.setSelected(true);
 			break;
-		case GridBagConstraints.CENTER:
+		case Center:
 			tglAnchorMC.setSelected(true);
 			break;
-		case GridBagConstraints.EAST:
+		case Right:
 			tglAnchorMR.setSelected(true);
 			break;
-		case GridBagConstraints.SOUTHWEST:
+		case BottomLeft:
 			tglAnchorBL.setSelected(true);
 			break;
-		case GridBagConstraints.SOUTH:
+		case BottomCenter:
 			tglAnchorBC.setSelected(true);
 			break;
-		case GridBagConstraints.SOUTHEAST:
+		case BottomRight:
 			tglAnchorBR.setSelected(true);
 			break;
 		}
 
 		// scroll
-		{
-			switch (options.startScrollX) {
-			case SwingConstants.LEFT:
-				switch (options.startScrollY) {
-				case SwingConstants.TOP:
-					tglScrollTL.setSelected(true);
-					break;
-				case SwingConstants.CENTER:
-					tglScrollML.setSelected(true);
-					break;
-				case SwingConstants.BOTTOM:
-					tglScrollBL.setSelected(true);
-					break;
-				}
-				break;
-			case SwingConstants.CENTER:
-				switch (options.startScrollY) {
-				case SwingConstants.TOP:
-					tglScrollTC.setSelected(true);
-					break;
-				case SwingConstants.CENTER:
-					tglScrollMC.setSelected(true);
-					break;
-				case SwingConstants.BOTTOM:
-					tglScrollBC.setSelected(true);
-					break;
-				}
-				break;
-			case SwingConstants.RIGHT:
-				switch (options.startScrollY) {
-				case SwingConstants.TOP:
-					tglScrollTR.setSelected(true);
-					break;
-				case SwingConstants.CENTER:
-					tglScrollMR.setSelected(true);
-					break;
-				case SwingConstants.BOTTOM:
-					tglScrollBR.setSelected(true);
-					break;
-				}
-				break;
-			}
+		switch (options.scrollStartPosition) {
+		case TopLeft:
+			tglScrollTL.setSelected(true);
+			break;
+		case TopCenter:
+			tglScrollTC.setSelected(true);
+			break;
+		case TopRight:
+			tglScrollTR.setSelected(true);
+			break;
+		case Left:
+			tglScrollML.setSelected(true);
+			break;
+		case Center:
+			tglScrollMC.setSelected(true);
+			break;
+		case Right:
+			tglScrollMR.setSelected(true);
+			break;
+		case BottomLeft:
+			tglScrollBL.setSelected(true);
+			break;
+		case BottomCenter:
+			tglScrollBC.setSelected(true);
+			break;
+		case BottomRight:
+			tglScrollBR.setSelected(true);
+			break;
 		}
 		tempOptions = options;
 	}
@@ -277,45 +262,10 @@ public class Anchors extends JPanel implements OptionPanel, ActionListener {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		String cmd = e.getActionCommand();
-		if (cmd.startsWith("anchor_")) {
-			tempOptions.imageAnchor = ANCHOR_DATA.get(cmd);
-		}
-		if(cmd.startsWith("scroll_")) {
-			switch (cmd) {
-			case "scroll_tl":
-			case "scroll_tc":
-			case "scroll_tr":
-				tempOptions.startScrollY = SwingConstants.TOP;
-				break;
-			case "scroll_ml":
-			case "scroll_mc":
-			case "scroll_mr":
-				tempOptions.startScrollY = SwingConstants.CENTER;
-				break;
-			case "scroll_bl":
-			case "scroll_bc":
-			case "scroll_br":
-				tempOptions.startScrollY = SwingConstants.BOTTOM;
-				break;
-			}
-			// scroll x
-			switch (cmd) {
-			case "scroll_tl":
-			case "scroll_ml":
-			case "scroll_bl":
-				tempOptions.startScrollX = SwingConstants.LEFT;
-				return;
-			case "scroll_tc":
-			case "scroll_mc":
-			case "scroll_bc":
-				tempOptions.startScrollX = SwingConstants.CENTER;
-				return;
-			case "scroll_tr":
-			case "scroll_mr":
-			case "scroll_br":
-				tempOptions.startScrollX = SwingConstants.RIGHT;
-				return;
-			}
+		if(cmd.startsWith("anchor_")) {
+			tempOptions.imageAnchorPosition = Options.Position.getPosition(cmd.substring(7));
+		} else if(cmd.startsWith("scroll_")) {
+			tempOptions.scrollStartPosition = Options.Position.getPosition(cmd.substring(7));
 		}
 	}
 	
