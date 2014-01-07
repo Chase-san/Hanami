@@ -77,6 +77,7 @@
 		</jar>
 		
 		<copy file="launcher/hanami.exe" todir="${releasedir}" />
+		<copy file="launcher/hanami.sh" todir="${releasedir}" />
 		
 		<!-- copy readme/license -->
 		<copy file="LICENSE" todir="${releasedir}" />
