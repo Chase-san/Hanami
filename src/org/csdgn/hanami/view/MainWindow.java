@@ -244,7 +244,7 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 			@Override
 			public void run() {
 				if (model.loadFile(file)) {
-					updateToNewImage();
+					updateImage(scaleAnimatedImage(model.getImage()));
 					setOverlayTextToFileData(file);
 				}
 			}
@@ -683,10 +683,6 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 		image.scrollRectToVisible(rect);
 
 		lastZoom = zoom;
-	}
-
-	private void updateToNewImage() {
-		updateImage(scaleAnimatedImage(model.getImage()));
 	}
 
 	private void updateImage(AnimatedImage image) {
