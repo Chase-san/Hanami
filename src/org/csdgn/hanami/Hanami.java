@@ -26,6 +26,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.ByteOrder;
+import java.nio.charset.Charset;
+import java.util.Arrays;
 
 import javax.imageio.ImageIO;
 import javax.swing.UIManager;
@@ -62,17 +65,31 @@ public class Hanami {
 			if (!fileToLoad.exists()) {
 				fileToLoad = null;
 			}
-		} else if (args.length == 2 && "-x".equals(args[0])) {
-			// Hex decode
-			StringBuilder sb = new StringBuilder();
-
-			for (String s : args[1].split("(?<=\\G....)")) {
-				sb.append((char) Integer.parseInt(s, 16));
-			}
-
-			fileToLoad = new File(sb.toString());
-			if (!fileToLoad.exists()) {
-				fileToLoad = null;
+		} else if (args.length == 2) {
+			if("-x".equals(args[0])) {
+				// Hex decode
+				StringBuilder sb = new StringBuilder();
+	
+				for (String s : args[1].split("(?<=\\G....)")) {
+					sb.append((char) Integer.parseInt(s, 16));
+				}
+	
+				fileToLoad = new File(sb.toString());
+				if (!fileToLoad.exists()) {
+					fileToLoad = null;
+				}
+			} else if("-64".equals(args[0])) {
+				// Base64 decode
+				byte[] data = javax.xml.bind.DatatypeConverter.parseBase64Binary(args[1]);
+				
+				String format = ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN ? "UTF-16BE" : "UTF-16LE";
+				String string = new String(data,Charset.forName(format));
+				javax.swing.JOptionPane.showMessageDialog(null, string);
+				
+				fileToLoad = new File(string);
+				if (!fileToLoad.exists()) {
+					fileToLoad = null;
+				}
 			}
 		}
 

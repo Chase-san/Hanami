@@ -2,6 +2,6 @@
 # MAJOR version when you make incompatible API changes,
 version.major=0
 # MINOR version when you add functionality in a backwards-compatible manner, and
-version.minor=2
+version.minor=3
 # PATCH version when you make backwards-compatible bug fixes.
-version.patch=0
+version.patch=1

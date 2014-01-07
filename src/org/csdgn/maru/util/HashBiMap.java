@@ -21,15 +21,12 @@ public class HashBiMap<K, V> implements Map<K, V> {
 		}
 	}
 	
-	private HashBiMap(boolean doNotInit) {
-		if(!doNotInit)
-			initalize();
-	}
+	private HashBiMap(boolean nothing) {}
 	
 	private void initalize() {
 		keys = new HashMap<K,V>();
 		vals = new HashMap<V,K>();
-		inverse = new HashBiMap<V,K>(true);
+		inverse = new HashBiMap<V,K>(false);
 		inverse.keys = vals;
 		inverse.vals = keys;
 		inverse.inverse = this;
