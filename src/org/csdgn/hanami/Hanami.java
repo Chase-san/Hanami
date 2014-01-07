@@ -28,7 +28,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 
 import javax.imageio.ImageIO;
 import javax.swing.UIManager;
@@ -84,7 +83,6 @@ public class Hanami {
 				
 				String format = ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN ? "UTF-16BE" : "UTF-16LE";
 				String string = new String(data,Charset.forName(format));
-				javax.swing.JOptionPane.showMessageDialog(null, string);
 				
 				fileToLoad = new File(string);
 				if (!fileToLoad.exists()) {
