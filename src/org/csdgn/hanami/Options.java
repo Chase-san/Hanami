@@ -71,7 +71,7 @@ public class Options implements Cloneable {
 	public Color foreground = Color.MAGENTA;
 	
 	public int getScrollStartHorizontal() {
-		switch(fullScreenCaptionPosition) {
+		switch(scrollStartPosition) {
 		case TopLeft: case Left: case BottomLeft:
 			return SwingConstants.LEFT;
 		case TopCenter: case Center: case BottomCenter:
@@ -82,7 +82,7 @@ public class Options implements Cloneable {
 		return 0;
 	}
 	public int getScrollStartVertical() {
-		switch(fullScreenCaptionPosition) {
+		switch(scrollStartPosition) {
 		case TopLeft: case TopCenter: case TopRight:
 			return SwingConstants.TOP;
 		case Left:  case Center: case Right:
@@ -115,7 +115,7 @@ public class Options implements Cloneable {
 		return 0;
 	}
 	public int getImageAnchorPosition() {
-		switch(fullScreenCaptionPosition) {
+		switch(imageAnchorPosition) {
 		case TopLeft:
 			return GridBagConstraints.NORTHWEST;
 		case TopCenter:
