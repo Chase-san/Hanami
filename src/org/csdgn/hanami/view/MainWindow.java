@@ -70,6 +70,8 @@ import org.csdgn.hanami.Options;
 import org.csdgn.hanami.WindowToolkit;
 import org.csdgn.maru.image.AnimatedImage;
 
+import com.mortennobel.imagescaling.ResampleFilters;
+
 /**
  * This ought to be fun.
  * 
@@ -119,6 +121,8 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 	private Future<?> animationFuture;
 	private ExecutorService callPool;
 	private ExecutorService animationPool;
+	
+	private float lastZoom;
 
 	public MainWindow(Hanami hanami) {
 		super("Hanami");
@@ -235,11 +239,12 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 	}
 
 	public void callLoadFile(final File file) {
+		lastZoom = 1;
 		callPool.submit(new Runnable() {
 			@Override
 			public void run() {
 				if(model.loadFile(file)) {
-					updateImage();
+					updateToNewImage();
 					setOverlayTextToFileData(file);
 				}
 			}
@@ -390,21 +395,23 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 			model.setIndex(model.getSize() - 1);
 			callLoadFile(model.getIndexedFile());
 			break;
+		case KeyEvent.VK_EQUALS:
+		case KeyEvent.VK_ADD:
+			setImageZoom(lastZoom*1.5f);
+			break;
+		case KeyEvent.VK_SUBTRACT:
+		case KeyEvent.VK_MINUS:
+			setImageZoom(lastZoom/1.5f);
+			break;
 		}
 
 	}
 
 	@Override
-	public void keyReleased(KeyEvent e) {
-		// TODO Auto-generated method stub
-
-	}
+	public void keyReleased(KeyEvent e) {}
 
 	@Override
-	public void keyTyped(KeyEvent e) {
-		// TODO Auto-generated method stub
-
-	}
+	public void keyTyped(KeyEvent e) {}
 
 	private void loadSingleImage(BufferedImage image) {
 		this.image.setImage(image);
@@ -554,7 +561,7 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 		full.requestFocus();
 		full.toFront();
 
-		updateImage();
+		//updateToNewImage();
 		resetScroll();
 	}
 
@@ -635,7 +642,8 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 
 		validate();
 
-		updateImage();
+		//updateToNewImage();
+		//setImageZoom(lastZoom);
 		resetScroll();
 
 		validate();
@@ -648,10 +656,38 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 			resizeWindow();
 		}
 	}
+	
+	private void setImageZoom(float zoom) {
+		if(lastZoom == zoom) {
+			updateImage(lastImage);
+			return;
+		}
+		
+		AnimatedImage rawImage = model.getImage();
+		
+		int nw = (int) (rawImage.getWidth() * zoom);
+		int nh = (int) (rawImage.getHeight() * zoom);
+		
+		//get center of visible rect
+		Rectangle rect = image.getVisibleRect();
+		rect.x = (int) (rect.getCenterX() / lastZoom * zoom - rect.width / 2);
+		rect.y = (int) (rect.getCenterY() / lastZoom * zoom - rect.height / 2);
+		
+		AnimatedImage zoomedImage = AppToolkit.getScaledAnimatedImage(rawImage, nw, nh, ResampleFilters.getLanczos3Filter());
+		updateImage(zoomedImage);
+		
+		//recenter position (we need two of these, for some reason)
+		image.scrollRectToVisible(rect);
+		image.scrollRectToVisible(rect);
+		
+		lastZoom = zoom;
+	}
+	
+	private void updateToNewImage() {
+		updateImage(scaleAnimatedImage(model.getImage()));
+	}
 
-	private void updateImage() {
-		AnimatedImage image = scaleAnimatedImage(model.getImage());
-
+	private void updateImage(AnimatedImage image) {
 		if (lastImage != null) {
 			lastImage.flush();
 		}

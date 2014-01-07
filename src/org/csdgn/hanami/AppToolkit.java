@@ -34,6 +34,8 @@ import java.util.ArrayList;
 import javax.imageio.ImageIO;
 import javax.swing.UIManager;
 
+import org.csdgn.maru.image.AnimatedImage;
+
 import com.mortennobel.imagescaling.ResampleFilter;
 import com.mortennobel.imagescaling.ResampleOp;
 
@@ -180,6 +182,14 @@ public class AppToolkit {
 		return new Dimension((int) scaledWidth, (int) scaledHeight);
 	}
 
+	public static AnimatedImage getScaledAnimatedImage(AnimatedImage image, int width, int height, ResampleFilter filter) {
+		BufferedImage[] imgs = new BufferedImage[image.getFrameCount()];
+		for (int i = 0; i < imgs.length; ++i) {
+			imgs[i] = getScaledImage(image.getFrames()[i],width,height,filter);
+		}
+		return new AnimatedImage(imgs, image.getDurations());
+	}
+	
 	public static BufferedImage getScaledImage(BufferedImage image, int width, int height, ResampleFilter filter) {
 		ResampleOp op = new ResampleOp(width, height);
 		op.setFilter(filter);
