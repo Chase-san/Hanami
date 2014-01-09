@@ -70,6 +70,7 @@ import org.csdgn.hanami.Options;
 import org.csdgn.hanami.WindowToolkit;
 import org.csdgn.maru.image.AnimatedImage;
 
+import com.mortennobel.imagescaling.ResampleFilter;
 import com.mortennobel.imagescaling.ResampleFilters;
 
 /**
@@ -245,6 +246,7 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 			public void run() {
 				if (model.loadFile(file)) {
 					updateImage(scaleAnimatedImage(model.getImage()));
+					resetScroll();
 					setOverlayTextToFileData(file);
 				}
 			}
@@ -563,7 +565,9 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 		full.requestFocus();
 		full.toFront();
 
-		// updateToNewImage();
+		setImageZoom(1);
+		updateImage(scaleAnimatedImage(model.getImage()));
+		
 		resetScroll();
 	}
 
@@ -644,8 +648,8 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 
 		validate();
 
-		// updateToNewImage();
-		// setImageZoom(lastZoom);
+		setImageZoom(1);
+		updateImage(scaleAnimatedImage(model.getImage()));
 		resetScroll();
 
 		validate();
@@ -661,7 +665,6 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 
 	private void setImageZoom(float zoom) {
 		if (lastZoom == zoom) {
-			updateImage(lastImage);
 			return;
 		}
 
@@ -675,7 +678,12 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 		rect.x = (int) (rect.getCenterX() / lastZoom * zoom - rect.width / 2);
 		rect.y = (int) (rect.getCenterY() / lastZoom * zoom - rect.height / 2);
 
-		AnimatedImage zoomedImage = AppToolkit.getScaledAnimatedImage(rawImage, nw, nh, ResampleFilters.getLanczos3Filter());
+		ResampleFilter f = model.options.resizeFilter;
+		if(zoom > 4 && nw*nh >= 960000) {
+			f = ResampleFilters.getHermiteFilter();
+		}
+		
+		AnimatedImage zoomedImage = AppToolkit.getScaledAnimatedImage(rawImage, nw, nh, f);
 		updateImage(zoomedImage);
 
 		// recenter position (we need two of these, for some reason)
@@ -685,7 +693,7 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 		lastZoom = zoom;
 	}
 
-	private void updateImage(AnimatedImage image) {
+	private void updateImage(AnimatedImage image) {	
 		if (lastImage != null) {
 			lastImage.flush();
 		}
