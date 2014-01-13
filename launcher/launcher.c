@@ -57,7 +57,7 @@ int main() {
 	
 	wchar_t wjargs[1024];
 	
-	wcscat(wjargs,L"-Xmx1024m -jar ");
+	wcscat(wjargs,L"-Xmx1024m -jar \"");
 	{
 		wchar_t path[1024];
 		wmemset(path,0,1024);
@@ -72,7 +72,7 @@ int main() {
 		wcscat(wjargs,path);
 	}
 	//our jar file
-	wcscat(wjargs,L"\\lib\\hanami.jar");
+	wcscat(wjargs,L"\\lib\\hanami.jar\"");
 	
 	if(argc > 1) {
 #ifdef BASE64
