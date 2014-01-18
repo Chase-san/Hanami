@@ -125,6 +125,8 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 
 	private float lastZoom;
 
+	public boolean lastActionWasDelete = false;
+	
 	public MainWindow(Hanami hanami) {
 		super("Hanami");
 
@@ -211,9 +213,11 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 					if (neverAskAgain.isSelected()) {
 						model.options.askToDelete = false;
 					}
+					lastActionWasDelete = true;
 					model.deleteLastFile();
 				}
 			} else {
+				lastActionWasDelete = true;
 				model.deleteLastFile();
 			}
 			break;
@@ -377,6 +381,7 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 			}
 		case KeyEvent.VK_PAGE_UP:
 		case KeyEvent.VK_BACK_SPACE:
+			lastActionWasDelete = false;
 			model.previousIndex();
 			callLoadFile(model.getIndexedFile());
 			break;
@@ -386,15 +391,20 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 			}
 		case KeyEvent.VK_PAGE_DOWN:
 		case KeyEvent.VK_SPACE:
-			model.nextIndex();
+			if(!lastActionWasDelete) {
+				model.nextIndex();
+			}
 			callLoadFile(model.getIndexedFile());
+			lastActionWasDelete = false;
 			break;
 		case KeyEvent.VK_HOME:
 			model.setIndex(0);
+			lastActionWasDelete = false;
 			callLoadFile(model.getIndexedFile());
 			break;
 		case KeyEvent.VK_END:
 			model.setIndex(model.getSize() - 1);
+			lastActionWasDelete = false;
 			callLoadFile(model.getIndexedFile());
 			break;
 		case KeyEvent.VK_EQUALS:
@@ -705,6 +715,8 @@ public class MainWindow extends JFrame implements ActionListener, KeyListener {
 			}
 			animationFuture = null;
 		}
+		
+		lastActionWasDelete = false;
 
 		// load image into system
 		if (image.getFrameCount() > 1) {
