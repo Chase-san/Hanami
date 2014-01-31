@@ -179,7 +179,9 @@ public class Hanami {
 			}
 			AnimatedImage image = null;
 			if (file.getName().toLowerCase().endsWith("gif")) {
-				image = new AnimatedImage(new GIFFrameBuilder(new FileInputStream(file), true));
+				FileInputStream fis = new FileInputStream(file);
+				image = new AnimatedImage(new GIFFrameBuilder(fis, true));
+				fis.close();
 			} else {
 				image = new AnimatedImage(ImageIO.read(file));
 			}

@@ -28,10 +28,10 @@ package org.csdgn.hanami;
  */
 public class Version {
 	public static final String NAME = "Hanami";
-	public static final int BUILD = 417;
+	public static final int BUILD = 422;
 	public static final int MAJOR = 0;
 	public static final int MINOR = 4;
-	public static final int PATCH = 3;
+	public static final int PATCH = 4;
 
 	public static final String getVersionString() {
 		return String.format("%s %d.%d.%d (build %d)", NAME, MAJOR, MINOR, PATCH, BUILD);
